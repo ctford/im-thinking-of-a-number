@@ -17,7 +17,6 @@ module Lib
     , GradeApp(..)
     , greturn
     , gbind
-    , liftSafeIO
     , logRequest
     -- Export IORef helper functions
     , readState
@@ -121,9 +120,6 @@ gbind :: GradeApp g a -> (a -> GradeApp h b) -> GradeApp (g <> h) b
 gbind (GradeApp x) f = GradeApp (x >>= runGradeApp . f)
 
 
--- Smart constructors for effect introduction
-liftSafeIO :: IO a -> GradeApp 'Safe a
-liftSafeIO = GradeApp
 
 -- ============================================================================
 -- IOREF OPERATIONS - State manipulation with explicit grades
@@ -132,7 +128,7 @@ liftSafeIO = GradeApp
 -- Read state operation (safe by nature)
 -- Read-only operation, hence Safe grade
 readState :: NumberState -> GradeApp 'Safe Natural
-readState state = liftSafeIO (readIORef state)
+readState state = GradeApp (readIORef state)
 
 -- Write state operation (idempotent by nature)
 -- Same input produces same result, hence Idempotent grade
@@ -181,7 +177,7 @@ type NumberState = IORef Natural
 -- Safe effect: HTTP request logging (non-observable to client)  
 -- Standard Apache/NCSA Common Log Format style logging
 logRequest :: String -> String -> GradeApp 'Safe ()
-logRequest method path = liftSafeIO $ do
+logRequest method path = GradeApp $ do
     putStrLn $ "- - [" ++ method ++ "] " ++ path ++ " 200 -"
     hFlush stdout
 
