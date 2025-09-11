@@ -64,13 +64,9 @@
         <div class="effect-label">POST /add (Unsafe grade)</div>
     </div>
     
-    <div class="input-group">
-        <label>Show Current Number:</label><br>
-        <button onclick="showNumber()">Show</button>
-        <div class="effect-label">GET /show (Safe grade)</div>
-    </div>
     
-    <div id="result">Click "Show" to see the current number</div>
+    <div id="result">Current number will be displayed here</div>
+    <div class="effect-label">GET /show (Safe grade)</div>
     
     <script>
         function setNumber() {
@@ -92,7 +88,7 @@
                 return response.json();
             })
             .then(data => {
-                document.getElementById('result').innerText = 'Set to: ' + data.value;
+                document.getElementById('result').innerText = 'Current number: ' + data.value;
                 document.getElementById('setValue').value = '';
             })
             .catch(error => {
@@ -119,7 +115,7 @@
                 return response.json();
             })
             .then(data => {
-                document.getElementById('result').innerText = 'Result: ' + data.value;
+                document.getElementById('result').innerText = 'Current number: ' + data.value;
                 // Don't clear addValue field to allow repeated additions
             })
             .catch(error => {
@@ -127,7 +123,8 @@
             });
         }
         
-        function showNumber() {
+        // Show current number on page load
+        function loadCurrentNumber() {
             fetch('/show')
             .then(response => {
                 if (!response.ok) {
@@ -143,8 +140,8 @@
             });
         }
         
-        // Auto-show on page load
-        showNumber();
+        // Load current number on page load
+        loadCurrentNumber();
     </script>
 </body>
 </html>
