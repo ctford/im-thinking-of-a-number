@@ -37,6 +37,11 @@ cabal clean                    # Clean build artifacts
 - ✅ **HTML frontend** with client-side validation and proper HTTP method usage
 - ✅ **Cabal build system** with clean project structure
 
+### Recent Changes
+- ✅ **Refactored random number generation** - Moved random generation logic into `randomiseState` function in IORef operations section
+  - `randomiseState :: NumberState -> GradeApp 'Unsafe ()` - generates random number and writes to state
+  - `randomiseNumber` now calls `randomiseState` followed by `readState` to demonstrate explicit state reading pattern
+  - Maintains proper separation of concerns between state mutation and value retrieval
 
 ## Testing the Current Application
 
@@ -52,6 +57,9 @@ curl -X PUT -H "Content-Type: application/json" -d '{"value": 42}' http://localh
 
 # Add 8 to current number
 curl -X POST -H "Content-Type: application/json" -d '{"value": 8}' http://localhost:8080/add
+
+# Generate random number
+curl -X POST http://localhost:8080/randomise
 
 # Test wrong HTTP method (should get 405)
 curl -X POST http://localhost:8080/set

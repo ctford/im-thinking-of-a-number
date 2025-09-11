@@ -23,6 +23,7 @@ module Lib
     , readState
     , writeState
     , addToState
+    , randomiseState
     -- Export data types for testing
     , NumberResponse(..)
     , NumberState
@@ -144,6 +145,13 @@ addToState state addValue = GradeApp $ do
     current <- readIORef state
     writeIORef state (current + addValue)
 
+-- Randomise state operation (unsafe by nature)
+-- Non-deterministic operation, hence Unsafe grade
+randomiseState :: NumberState -> GradeApp 'Unsafe ()
+randomiseState state = GradeApp $ do
+    randomVal <- fromIntegral <$> randomRIO (0, 1000 :: Int)
+    writeIORef state randomVal
+
 
 
 -- Convenience constructors for different effect grades
@@ -200,18 +208,13 @@ addNumber state addValue =
     readState state `gbind` \newValue ->
     unsafe (NumberResponse newValue)
 
--- Generate random number (unsafe by nature)
--- Non-deterministic operation, hence Unsafe grade
-randomValue :: GradeApp 'Unsafe Natural
-randomValue = GradeApp (fromIntegral <$> randomRIO (0, 1000 :: Int))
-
 -- Unsafe operation: randomise number (non-deterministic side effects)
--- Demonstrates: Safe <> Unsafe <> Idempotent = Unsafe (Monoid composition)
+-- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
 randomiseNumber :: NumberState -> GradeApp 'Unsafe NumberResponse
 randomiseNumber state = 
     logRequest "POST" "/randomise" `gbind` \_ ->
-    randomValue `gbind` \randomVal ->
-    writeState state randomVal `gbind` \_ ->
+    randomiseState state `gbind` \_ ->
+    readState state `gbind` \randomVal ->
     unsafe (NumberResponse randomVal)
 
 
