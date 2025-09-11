@@ -16,7 +16,7 @@ module Lib
     , resetNumber
     -- Export graded monad primitives for testing  
     , Action(..)
-    , gbind
+    , bind
     , logRequest
     -- Export data types for testing
     , NumberResponse(..)
@@ -104,8 +104,8 @@ type family (g :: Grade) <> (h :: Grade) :: Grade where
 newtype Action (g :: Grade) a = Action { runAction :: IO a }
 
 -- Graded bind: composition uses Monoid operation (<>)
-gbind :: Action g a -> (a -> Action h b) -> Action (g <> h) b
-gbind (Action x) f = Action (x >>= runAction . f)
+bind :: Action g a -> (a -> Action h b) -> Action (g <> h) b
+bind (Action x) f = Action (x >>= runAction . f)
 
 
 
@@ -181,8 +181,8 @@ logRequest verb path maybeValue = Action $ do
 -- Demonstrates algebraic composition with Monoid
 showNumber :: NumberState -> Action 'Safe NumberResponse
 showNumber state = 
-    logRequest GET "/show" Nothing `gbind` \_ ->
-    readState state `gbind` \n ->
+    logRequest GET "/show" Nothing `bind` \_ ->
+    readState state `bind` \n ->
     safe (NumberResponse n)
 
 
@@ -190,34 +190,34 @@ showNumber state =
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
 setNumber :: NumberState -> Natural -> Action 'Idempotent NumberResponse
 setNumber state newValue = 
-    logRequest PUT "/set" (Just newValue) `gbind` \_ ->
-    writeState newValue state `gbind` \_ ->
+    logRequest PUT "/set" (Just newValue) `bind` \_ ->
+    writeState newValue state `bind` \_ ->
     idempotent (NumberResponse newValue)
 
 -- Unsafe operation: add to number (observable side effects)
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
 addNumber :: NumberState -> Natural -> Action 'Unsafe NumberResponse  
 addNumber state addValue = 
-    logRequest POST "/add" (Just addValue) `gbind` \_ ->
-    addToState addValue state `gbind` \_ ->
-    readState state `gbind` \newValue ->
+    logRequest POST "/add" (Just addValue) `bind` \_ ->
+    addToState addValue state `bind` \_ ->
+    readState state `bind` \newValue ->
     unsafe (NumberResponse newValue)
 
 -- Unsafe operation: randomise number (non-deterministic side effects)
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
 randomiseNumber :: NumberState -> Action 'Unsafe NumberResponse
 randomiseNumber state = 
-    logRequest POST "/randomise" Nothing `gbind` \_ ->
-    randomiseState state `gbind` \_ ->
-    readState state `gbind` \randomVal ->
+    logRequest POST "/randomise" Nothing `bind` \_ ->
+    randomiseState state `bind` \_ ->
+    readState state `bind` \randomVal ->
     unsafe (NumberResponse randomVal)
 
 -- Idempotent operation: reset number to zero (repeatable with same result)
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
 resetNumber :: NumberState -> Action 'Idempotent NumberResponse
 resetNumber state = 
-    logRequest DELETE "/reset" Nothing `gbind` \_ ->
-    writeState 0 state `gbind` \_ ->
+    logRequest DELETE "/reset" Nothing `bind` \_ ->
+    writeState 0 state `bind` \_ ->
     idempotent (NumberResponse 0)
 
 
