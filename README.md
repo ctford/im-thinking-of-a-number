@@ -1,6 +1,6 @@
 # I'm Thinking of a Number
 
-A Haskell web application demonstrating indexed monad effects with HTTP semantics.
+A Haskell web application demonstrating how to use indexed monad effects to typecheck HTTP method semantics.
 
 ## Tech Stack
 
@@ -17,7 +17,7 @@ This application implements a number-thinking game with three operations:
 - **Add**: Add to the number (POST /add - unsafe)
 - **Show**: Display the number (GET /show - safe)
 
-The application uses an indexed monad system to track effect grades and enforce HTTP method semantics.
+The application uses an indexed monad system to track effect grades and typecheck HTTP method semantics.
 
 ## Quick Start
 

@@ -1,7 +1,7 @@
 # Implementation Plan: I'm Thinking of a Number
 
 ## Project Goal
-Create a Haskell web application demonstrating indexed monad effects with proper HTTP method semantics. This serves as an experiment in one-shot application construction starting from zero Haskell environment.
+Create a Haskell web application demonstrating how to use indexed monad effects to typecheck HTTP method semantics. This serves as an experiment in one-shot application construction starting from zero Haskell environment.
 
 ## Original Requirements
 1. **Haskell web application** using a simple web framework (chose Servant)

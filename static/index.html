@@ -48,25 +48,25 @@
 </head>
 <body>
     <h1>I'm Thinking of a Number</h1>
-    <p>This demonstrates indexed monad effects with HTTP method semantics:</p>
+    <p>This demonstrates how to use indexed monad effects to typecheck HTTP method semantics.</p>
     
     <div class="input-group">
         <label>Set Number:</label><br>
         <input type="number" id="setValue" placeholder="Enter number">
         <button onclick="setNumber()">Set</button>
-        <div class="effect-label">PUT /set (Idempotent grade)</div>
+        <div class="effect-label">PUT /set (Idempotent)</div>
     </div>
     
     <div class="input-group">
         <label>Add to Number:</label><br>
         <input type="number" id="addValue" placeholder="Enter number">
         <button onclick="addNumber()">Add</button>
-        <div class="effect-label">POST /add (Unsafe grade)</div>
+        <div class="effect-label">POST /add (Unsafe)</div>
     </div>
     
     
     <div id="result">Current number will be displayed here</div>
-    <div class="effect-label">GET /show (Safe grade)</div>
+    <div class="effect-label">GET /show (Safe)</div>
     
     <script>
         function setNumber() {
