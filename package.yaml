@@ -30,6 +30,7 @@ dependencies:
 - stm
 - transformers
 - text
+- random
 
 library:
   source-dirs: src

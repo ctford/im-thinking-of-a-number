@@ -21,13 +21,55 @@ import Data.Aeson
 import Data.IORef
 import Control.Monad.IO.Class
 import Numeric.Natural
+import System.Random
 
--- Complete Grade hierarchy for HTTP effects
+-- ============================================================================
+-- GRADE HIERARCHY - Complete lattice for HTTP effect classification
+-- ============================================================================
+{-
+   Grade Lattice (⊑ = "less safe than"):
+   
+       Pure ⊑ Safe ⊑ Idempotent ⊑ Unsafe
+       
+   ASCII Diagram:
+   
+       Pure      (no effects, pure computation)
+         |
+       Safe      (logging, read-only operations)  
+         |
+    Idempotent   (repeatable operations, same result)
+         |
+      Unsafe     (observable side effects, state changes)
+      
+   Properties:
+   • Monotonic: Operations can only increase grade (no downgrades)
+   • Algebraic: Composition follows mathematical laws
+   • HTTP Semantic: Maps to proper HTTP method semantics
+-}
 data Grade = Pure | Safe | Idempotent | Unsafe deriving (Show, Eq, Ord)
 
--- Type family for algebraic grade composition
--- The algebra: Pure < Safe < Idempotent < Unsafe (monotonic hierarchy)
--- Composition always produces the "higher" (less safe) grade
+-- ============================================================================
+-- ALGEBRAIC COMPOSITION - Type families implementing grade algebra
+-- ============================================================================
+{-
+   Sequential Composition Laws (⊕ = Combine):
+   
+   IDENTITY LAWS:
+   • Pure ⊕ g = g           (Pure is left identity)
+   • g ⊕ Pure = g           (Pure is right identity)
+   
+   ABSORPTION LAWS (higher grades absorb lower):
+   • Safe ⊕ Safe = Safe
+   • Safe ⊕ Idempotent = Idempotent     (Safe absorbed by Idempotent)
+   • Safe ⊕ Unsafe = Unsafe            (Safe absorbed by Unsafe)
+   • Idempotent ⊕ Unsafe = Unsafe      (Idempotent absorbed by Unsafe)
+   
+   COMMUTATIVITY (for same grades):
+   • g ⊕ g = g              (Same grade is idempotent)
+   
+   MONOTONICITY:
+   • If g₁ ⊑ g₂, then h ⊕ g₁ ⊑ h ⊕ g₂  (Grade can only increase)
+-}
 type family Combine (i :: Grade) (j :: Grade) :: Grade where
   -- Identity laws: Pure is identity element
   Combine 'Pure g = g
@@ -138,17 +180,81 @@ addNumber state addValue =
     safeContinue (writeIORef state newValue) `ibind` \_ ->
     weakenToUnsafe (safeContinue (return (NumberResponse newValue)))
 
--- Example of parallel composition (not used in API but demonstrates algebra)
--- Combines two Safe operations into one Safe operation using Max
-logAndShow :: NumberState -> IxApp 'Pure 'Safe ((), NumberResponse)
-logAndShow state = iparallel 
-    (logRequest "PARALLEL" "/demo")
-    (liftSafeIO (readIORef state) `ibind` \n -> safeContinue (return (NumberResponse n)))
+-- Unsafe operation: randomise number (non-deterministic side effects)
+-- Demonstrates: Safe + Unsafe = Unsafe (randomness makes it unsafe)
+randomiseNumber :: NumberState -> IxApp 'Pure 'Unsafe NumberResponse
+randomiseNumber state = 
+    logRequest "POST" "/randomise" `ibind` \_ ->
+    -- Random generation is inherently unsafe (non-deterministic)
+    safeContinue (fromIntegral <$> randomRIO (0, 1000 :: Int)) `ibind` \randomValue ->
+    safeContinue (writeIORef state randomValue) `ibind` \_ ->
+    weakenToUnsafe (safeContinue (return (NumberResponse randomValue)))
+
+-- ============================================================================
+-- ALGEBRAIC COMPOSITION EXAMPLES - Educational Demonstrations
+-- ============================================================================
+
+-- Example 1: Identity Law - Pure is the identity element
+-- Mathematical: Pure ⊕ g = g
+identityLawDemo :: NumberState -> IxApp 'Pure 'Safe Natural
+identityLawDemo state = 
+    -- Step 1: Pure → Pure (identity)  
+    ireturn () `ibind` \_ ->
+    -- Step 2: Pure ⊕ Safe = Safe (identity law applied)
+    liftSafeIO (readIORef state)
+
+-- Example 2: Absorption Law - Higher grades absorb lower ones  
+-- Mathematical: Safe ⊕ Idempotent = Idempotent
+absorptionLawDemo :: NumberState -> Natural -> IxApp 'Pure 'Idempotent ()
+absorptionLawDemo state value =
+    -- Step 1: Pure → Safe (logging)
+    logRequest "DEMO" "/absorption" `ibind` \_ ->
+    -- Step 2: Safe ⊕ Safe = Safe (same grade composition)
+    safeContinue (writeIORef state value) `ibind` \_ ->
+    -- Step 3: Safe → Idempotent (weakening/absorption)
+    weakenToIdempotent (safeContinue (return ()))
+
+-- Example 3: Sequential Composition Chain
+-- Shows step-by-step grade elevation: Pure → Safe → Safe → Idempotent
+sequentialCompositionDemo :: NumberState -> Natural -> IxApp 'Pure 'Idempotent Natural
+sequentialCompositionDemo state newValue = 
+    -- Step 1: Pure → Safe (Combine 'Pure 'Safe = 'Safe)
+    logRequest "SEQ" "/step1" `ibind` \_ ->
+    -- Step 2: Safe → Safe (Combine 'Safe 'Safe = 'Safe) 
+    safeContinue (readIORef state) `ibind` \oldValue ->
+    -- Step 3: Safe → Safe (still Safe grade)
+    safeContinue (writeIORef state newValue) `ibind` \_ ->
+    -- Step 4: Safe → Idempotent (grade elevation)
+    weakenToIdempotent (safeContinue (return oldValue))
+
+-- Example 4: Parallel Composition with Max
+-- Mathematical: Max(Safe, Safe) = Safe
+parallelCompositionDemo :: NumberState -> IxApp 'Pure 'Safe ((), Natural)
+parallelCompositionDemo state = iparallel 
+    -- Left side: Pure → Safe
+    (logRequest "PARALLEL" "/left")
+    -- Right side: Pure → Safe  
+    -- Result: Pure → Max(Safe, Safe) = Pure → Safe
+    (liftSafeIO (readIORef state))
+
+-- Example 5: Grade Elevation Chain
+-- Shows how grades can only go "up" the hierarchy
+gradeElevationDemo :: NumberState -> Natural -> IxApp 'Pure 'Unsafe Natural
+gradeElevationDemo state addValue =
+    -- Pure → Safe
+    logRequest "ELEVATION" "/unsafe" `ibind` \_ ->
+    -- Safe → Safe  
+    safeContinue (readIORef state) `ibind` \current ->
+    -- Safe → Safe
+    safeContinue (writeIORef state (current + addValue)) `ibind` \_ ->
+    -- Safe → Unsafe (final elevation to highest grade)
+    weakenToUnsafe (safeContinue (return (current + addValue)))
 
 -- Servant API definition with proper HTTP methods
 type API = "show" :> Get '[JSON] NumberResponse
         :<|> "set" :> ReqBody '[JSON] NumberRequest :> Put '[JSON] NumberResponse  
         :<|> "add" :> ReqBody '[JSON] NumberRequest :> Post '[JSON] NumberResponse
+        :<|> "randomise" :> Post '[JSON] NumberResponse
         :<|> Raw
 
 api :: Proxy API
@@ -159,6 +265,7 @@ server :: NumberState -> Server API
 server state = showHandler
           :<|> setHandler  
           :<|> addHandler
+          :<|> randomiseHandler
           :<|> staticHandler
   where
     showHandler :: Handler NumberResponse
@@ -169,6 +276,9 @@ server state = showHandler
         
     addHandler :: NumberRequest -> Handler NumberResponse
     addHandler (NumberRequest n) = liftIO $ runIxApp $ addNumber state n
+
+    randomiseHandler :: Handler NumberResponse
+    randomiseHandler = liftIO $ runIxApp $ randomiseNumber state
         
     staticHandler :: Server Raw
     staticHandler = serveDirectoryWith $ (defaultWebAppSettings "static")

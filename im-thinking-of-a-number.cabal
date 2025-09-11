@@ -13,6 +13,7 @@ author:         Chris Ford
 maintainer:     example@example.com
 copyright:      2025 Chris Ford
 license:        BSD3
+license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
@@ -32,6 +33,7 @@ library
   build-depends:
       aeson
     , base >=4.7 && <5
+    , random
     , servant
     , servant-server
     , stm
@@ -53,6 +55,7 @@ executable im-thinking-of-a-number-exe
       aeson
     , base >=4.7 && <5
     , im-thinking-of-a-number
+    , random
     , servant
     , servant-server
     , stm
@@ -76,6 +79,7 @@ test-suite im-thinking-of-a-number-test
     , base >=4.7 && <5
     , hspec
     , im-thinking-of-a-number
+    , random
     , servant
     , servant-client
     , servant-server

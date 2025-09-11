@@ -64,6 +64,11 @@
         <div class="effect-label">POST /add (Unsafe)</div>
     </div>
     
+    <div class="input-group">
+        <label>Randomise Number:</label><br>
+        <button onclick="randomizeNumber()">Randomise (0-1000)</button>
+        <div class="effect-label">POST /randomise (Unsafe)</div>
+    </div>
     
     <div id="result">Current number will be displayed here</div>
     <div class="effect-label">GET /show (Safe)</div>
@@ -129,6 +134,25 @@
             .then(data => {
                 document.getElementById('result').innerText = 'Current number: ' + data.value;
                 // Don't clear addValue field to allow repeated additions
+            })
+            .catch(error => {
+                document.getElementById('result').innerText = 'Error: ' + error.message;
+            });
+        }
+        
+        function randomizeNumber() {
+            fetch('/randomise', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('result').innerText = 'Current number: ' + data.value;
             })
             .catch(error => {
                 document.getElementById('result').innerText = 'Error: ' + error.message;
