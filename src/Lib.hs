@@ -3,6 +3,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Lib
     ( startApp
@@ -18,33 +20,83 @@ import Data.Text (pack)
 import Data.Aeson
 import Data.IORef
 import Control.Monad.IO.Class
+import Numeric.Natural
 
 -- Complete Grade hierarchy for HTTP effects
 data Grade = Pure | Safe | Idempotent | Unsafe deriving (Show, Eq, Ord)
 
--- Indexed monad for effect tracking - simplified but type-safe
+-- Type family for algebraic grade composition
+-- The algebra: Pure < Safe < Idempotent < Unsafe (monotonic hierarchy)
+-- Composition always produces the "higher" (less safe) grade
+type family Combine (i :: Grade) (j :: Grade) :: Grade where
+  -- Identity laws: Pure is identity element
+  Combine 'Pure g = g
+  Combine g 'Pure = g
+  
+  -- Absorption laws: higher grades absorb lower ones
+  Combine 'Safe 'Safe = 'Safe
+  Combine 'Safe 'Idempotent = 'Idempotent  
+  Combine 'Safe 'Unsafe = 'Unsafe
+  Combine 'Idempotent 'Safe = 'Idempotent
+  Combine 'Idempotent 'Idempotent = 'Idempotent
+  Combine 'Idempotent 'Unsafe = 'Unsafe
+  Combine 'Unsafe 'Safe = 'Unsafe
+  Combine 'Unsafe 'Idempotent = 'Unsafe
+  Combine 'Unsafe 'Unsafe = 'Unsafe
+
+-- Type family for maximum (least upper bound) in the grade lattice
+type family Max (i :: Grade) (j :: Grade) :: Grade where
+  Max 'Pure g = g
+  Max g 'Pure = g
+  Max 'Safe 'Safe = 'Safe
+  Max 'Safe g = g
+  Max g 'Safe = g
+  Max 'Idempotent 'Idempotent = 'Idempotent
+  Max 'Idempotent 'Unsafe = 'Unsafe
+  Max 'Unsafe 'Idempotent = 'Unsafe
+  Max 'Unsafe 'Unsafe = 'Unsafe
+
+-- Indexed monad for effect tracking with proper algebraic composition
 newtype IxApp (i :: Grade) (j :: Grade) a = IxApp { runIxApp :: IO a }
 
 instance Functor (IxApp i j) where
     fmap f (IxApp x) = IxApp (f <$> x)
 
--- Grade transition operations
-pureToSafe :: IO a -> IxApp 'Pure 'Safe a
-pureToSafe = IxApp
+-- Indexed monad operations with algebraic composition
+ireturn :: a -> IxApp 'Pure 'Pure a
+ireturn x = IxApp (return x)
 
-safeToIdempotent :: IO a -> IxApp 'Safe 'Idempotent a  
-safeToIdempotent = IxApp
+-- Algebraic bind: composition follows the algebra
+ibind :: IxApp i j a -> (a -> IxApp j k b) -> IxApp i (Combine j k) b
+ibind (IxApp x) f = IxApp (x >>= runIxApp . f)
 
-idempotentToUnsafe :: IO a -> IxApp 'Idempotent 'Unsafe a
-idempotentToUnsafe = IxApp
+-- Parallel composition: combines effects using Max (least upper bound)
+iparallel :: IxApp 'Pure i a -> IxApp 'Pure j b -> IxApp 'Pure (Max i j) (a, b)
+iparallel (IxApp x) (IxApp y) = IxApp ((,) <$> x <*> y)
 
--- Composition: allows chaining effects with grade elevation
-composeEffects :: IxApp i j a -> (a -> IxApp j k b) -> IxApp i k b
-composeEffects (IxApp x) f = IxApp (x >>= runIxApp . f)
+-- Smart constructors for effect introduction
+liftSafeIO :: IO a -> IxApp 'Pure 'Safe a
+liftSafeIO = IxApp
+
+-- Additional constructors for continuing with Safe effects
+safeContinue :: IO a -> IxApp 'Safe 'Safe a
+safeContinue = IxApp
+
+-- Specific weakening functions for the transitions we need
+weakenToIdempotent :: IxApp 'Safe 'Safe a -> IxApp 'Safe 'Idempotent a
+weakenToIdempotent (IxApp x) = IxApp x
+
+weakenToUnsafe :: IxApp 'Safe 'Safe a -> IxApp 'Safe 'Unsafe a
+weakenToUnsafe (IxApp x) = IxApp x
+
+weakenIdempotentToUnsafe :: IxApp 'Safe 'Idempotent a -> IxApp 'Safe 'Unsafe a
+weakenIdempotentToUnsafe (IxApp x) = IxApp x
+
+-- Strengthen is impossible (no downgrading) - this would be a type error
 
 -- JSON data types
-data NumberRequest = NumberRequest { value :: Int } deriving Show
-data NumberResponse = NumberResponse { current :: Int } deriving Show
+data NumberRequest = NumberRequest { value :: Natural } deriving Show
+data NumberResponse = NumberResponse { current :: Natural } deriving Show
 
 instance FromJSON NumberRequest where
     parseJSON = withObject "NumberRequest" $ \o -> NumberRequest <$> o .: "value"
@@ -53,34 +105,45 @@ instance ToJSON NumberResponse where
     toJSON (NumberResponse n) = object ["value" .= n]
 
 -- Global state for the number
-type NumberState = IORef Int
+type NumberState = IORef Natural
 
 -- Safe effect: HTTP request logging (non-observable to client)
+-- Pure → Safe: introducing a safe effect
 logRequest :: String -> String -> IxApp 'Pure 'Safe ()
-logRequest method path = pureToSafe $ putStrLn $ "HTTP Log: " ++ method ++ " " ++ path
+logRequest method path = liftSafeIO $ putStrLn $ "HTTP Log: " ++ method ++ " " ++ path
 
--- Safe operation: read current number (no side effects)
+-- Safe operation: read current number (no side effects)  
+-- Demonstrates algebraic composition: Pure + Safe = Safe
 showNumber :: NumberState -> IxApp 'Pure 'Safe NumberResponse
-showNumber state = pureToSafe $ do
-    putStrLn "HTTP Log: GET /show"
-    n <- readIORef state
-    return $ NumberResponse n
+showNumber state = 
+    logRequest "GET" "/show" `ibind` \_ ->
+    safeContinue (readIORef state) `ibind` \n ->
+    safeContinue (return (NumberResponse n))
 
 -- Idempotent operation: set number (repeatable with same result)
-setNumber :: NumberState -> Int -> IxApp 'Safe 'Idempotent NumberResponse
-setNumber state newValue = safeToIdempotent $ do
-    putStrLn "HTTP Log: PUT /set"
-    writeIORef state newValue
-    return $ NumberResponse newValue
+-- Demonstrates: Safe + Safe + Safe = Safe, then Safe → Idempotent  
+setNumber :: NumberState -> Natural -> IxApp 'Pure 'Idempotent NumberResponse
+setNumber state newValue = 
+    logRequest "PUT" "/set" `ibind` \_ ->
+    safeContinue (writeIORef state newValue) `ibind` \_ ->
+    weakenToIdempotent (safeContinue (return (NumberResponse newValue)))
 
 -- Unsafe operation: add to number (observable side effects)
-addNumber :: NumberState -> Int -> IxApp 'Idempotent 'Unsafe NumberResponse
-addNumber state addValue = idempotentToUnsafe $ do
-    putStrLn "HTTP Log: POST /add"
-    current <- readIORef state
-    let newValue = current + addValue
-    writeIORef state newValue
-    return $ NumberResponse newValue
+-- Demonstrates: Safe + Safe + Safe = Safe, then Safe → Unsafe
+addNumber :: NumberState -> Natural -> IxApp 'Pure 'Unsafe NumberResponse  
+addNumber state addValue = 
+    logRequest "POST" "/add" `ibind` \_ ->
+    safeContinue (readIORef state) `ibind` \current ->
+    let newValue = current + addValue in
+    safeContinue (writeIORef state newValue) `ibind` \_ ->
+    weakenToUnsafe (safeContinue (return (NumberResponse newValue)))
+
+-- Example of parallel composition (not used in API but demonstrates algebra)
+-- Combines two Safe operations into one Safe operation using Max
+logAndShow :: NumberState -> IxApp 'Pure 'Safe ((), NumberResponse)
+logAndShow state = iparallel 
+    (logRequest "PARALLEL" "/demo")
+    (liftSafeIO (readIORef state) `ibind` \n -> safeContinue (return (NumberResponse n)))
 
 -- Servant API definition with proper HTTP methods
 type API = "show" :> Get '[JSON] NumberResponse
