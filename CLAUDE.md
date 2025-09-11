@@ -4,11 +4,10 @@
 ```
 im-thinking-of-a-number/
 ├── app/Main.hs              -- Application entry point
-├── src/Lib.hs               -- Main library module (basic server)
+├── src/Lib.hs               -- Main library module 
 ├── test/Spec.hs             -- Test entry point
-├── static/                  -- Static files (pending)
-├── stack.yaml               -- Stack configuration
-└── package.yaml             -- Package dependencies
+├── static/                  -- Static files
+└── im-thinking-of-a-number.cabal  -- Cabal package configuration
 ```
 
 ## Development Commands
@@ -20,7 +19,7 @@ cabal run im-thinking-of-a-number-exe  # Run the server
 cabal test                     # Run tests
 ```
 
-**Note**: This project uses cabal instead of stack due to GHC installation issues with stack on this system. The system GHC works fine with cabal.
+**Note**: This project uses Cabal for package management and building.
 
 ### Development
 ```bash
