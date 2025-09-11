@@ -18,7 +18,7 @@ main = hspec $ do
     it "verifies GET /show operation is Safe grade" $ do
       -- Safe operations: read-only with logging effects
       state <- newIORef (123 :: Natural)
-      NumberResponse value <- runGradeApp $ showNumber state
+      NumberResponse value <- runAction $ showNumber state
       value `shouldBe` 123
       -- State unchanged (read-only)
       unchanged <- readIORef state  
@@ -27,8 +27,8 @@ main = hspec $ do
     it "verifies PUT /set operation is Idempotent grade" $ do
       -- Idempotent operations: repeatable with same result
       state <- newIORef (0 :: Natural)
-      NumberResponse result1 <- runGradeApp $ setNumber state 99
-      NumberResponse result2 <- runGradeApp $ setNumber state 99
+      NumberResponse result1 <- runAction $ setNumber state 99
+      NumberResponse result2 <- runAction $ setNumber state 99
       result1 `shouldBe` 99
       result2 `shouldBe` 99  -- Same result when repeated
       finalValue <- readIORef state
@@ -37,8 +37,8 @@ main = hspec $ do
     it "verifies POST /add operation is Unsafe grade" $ do  
       -- Unsafe operations: observable side effects, non-idempotent
       state <- newIORef (10 :: Natural)
-      NumberResponse result1 <- runGradeApp $ addNumber state 5
-      NumberResponse result2 <- runGradeApp $ addNumber state 5  
+      NumberResponse result1 <- runAction $ addNumber state 5
+      NumberResponse result2 <- runAction $ addNumber state 5  
       result1 `shouldBe` 15  -- 10 + 5
       result2 `shouldBe` 20  -- 15 + 5 (different result, not idempotent)
       finalValue <- readIORef state
@@ -47,7 +47,7 @@ main = hspec $ do
     it "verifies POST /randomise operation is Unsafe grade" $ do
       -- Unsafe operations: non-deterministic, observable side effects  
       state <- newIORef (0 :: Natural)
-      NumberResponse result <- runGradeApp $ randomiseNumber state
+      NumberResponse result <- runAction $ randomiseNumber state
       finalValue <- readIORef state
       -- Random value should be in expected range
       result `shouldSatisfy` (\x -> x >= 0 && x <= 1000)
@@ -60,7 +60,7 @@ main = hspec $ do
       -- Natural numbers cannot go negative - this is enforced by the type system
       state <- newIORef (5 :: Natural)
       -- All our operations should maintain Natural constraints
-      NumberResponse result <- runGradeApp $ addNumber state 10
+      NumberResponse result <- runAction $ addNumber state 10
       result `shouldSatisfy` (>= 0)
       
     it "verifies JSON parsing rejects negative numbers" $ do
@@ -68,7 +68,7 @@ main = hspec $ do
       -- We test this through the HTTP API in integration tests
       -- Here we just verify our Natural operations work correctly
       state <- newIORef (0 :: Natural) 
-      NumberResponse result <- runGradeApp $ setNumber state 42
+      NumberResponse result <- runAction $ setNumber state 42
       result `shouldBe` 42
 
   describe "Algebraic Laws Verification" $ do
@@ -76,18 +76,18 @@ main = hspec $ do
       -- Mathematical verification of Monoid identity element
       state <- newIORef (777 :: Natural)
       -- Pure computation followed by Safe operation  
-      result <- runGradeApp $ 
+      result <- runAction $ 
         greturn () `gbind` \_ ->           -- Pure computation (mempty)
-        GradeApp (readIORef state)         -- Pure <> Safe = Safe
+        Action (readIORef state)         -- Pure <> Safe = Safe
       result `shouldBe` 777
       
     it "proves associativity with Monoid operation" $ do  
       -- Monoid operation combines grades naturally
       state <- newIORef (555 :: Natural)
-      runGradeApp $ 
+      runAction $ 
         logRequest "TEST" "/associativity" `gbind` \_ ->  -- Safe effect
-        GradeApp (writeIORef state 888) `gbind` \_ ->      -- Safe <> Safe = Safe  
-        GradeApp (return ())                               -- Natural Safe grade
+        Action (writeIORef state 888) `gbind` \_ ->      -- Safe <> Safe = Safe  
+        Action (return ())                               -- Natural Safe grade
       finalValue <- readIORef state
       finalValue `shouldBe` 888
       
@@ -97,9 +97,9 @@ main = hspec $ do
       
       -- Demonstrate natural grade composition:
       state <- newIORef (333 :: Natural)
-      NumberResponse result <- runGradeApp $ 
-        GradeApp (readIORef state) `gbind` \value ->         -- Safe grade
-        GradeApp (return (NumberResponse value))             -- Natural Unsafe grade
+      NumberResponse result <- runAction $ 
+        Action (readIORef state) `gbind` \value ->         -- Safe grade
+        Action (return (NumberResponse value))             -- Natural Unsafe grade
       result `shouldBe` 333
       
       -- The reverse (going from Unsafe to Safe) is impossible at compile time

@@ -14,7 +14,7 @@ module Lib
     , addNumber
     , randomiseNumber
     -- Export graded monad primitives for testing  
-    , GradeApp(..)
+    , Action(..)
     , greturn
     , gbind
     , logRequest
@@ -106,18 +106,18 @@ type family (g :: Grade) <> (h :: Grade) :: Grade where
 -}
 
 -- Graded monad for effect tracking with single grade parameter
-newtype GradeApp (g :: Grade) a = GradeApp { runGradeApp :: IO a }
+newtype Action (g :: Grade) a = Action { runAction :: IO a }
 
-instance Functor (GradeApp g) where
-    fmap f (GradeApp x) = GradeApp (f <$> x)
+instance Functor (Action g) where
+    fmap f (Action x) = Action (f <$> x)
 
 -- Graded monad operations with single grade parameter
-greturn :: a -> GradeApp 'Pure a
-greturn x = GradeApp (return x)
+greturn :: a -> Action 'Pure a
+greturn x = Action (return x)
 
 -- Graded bind: composition uses Monoid operation (<>)
-gbind :: GradeApp g a -> (a -> GradeApp h b) -> GradeApp (g <> h) b
-gbind (GradeApp x) f = GradeApp (x >>= runGradeApp . f)
+gbind :: Action g a -> (a -> Action h b) -> Action (g <> h) b
+gbind (Action x) f = Action (x >>= runAction . f)
 
 
 
@@ -127,39 +127,39 @@ gbind (GradeApp x) f = GradeApp (x >>= runGradeApp . f)
 
 -- Read state operation (safe by nature)
 -- Read-only operation, hence Safe grade
-readState :: NumberState -> GradeApp 'Safe Natural
-readState state = GradeApp (readIORef state)
+readState :: NumberState -> Action 'Safe Natural
+readState state = Action (readIORef state)
 
 -- Write state operation (idempotent by nature)
 -- Same input produces same result, hence Idempotent grade
-writeState :: NumberState -> Natural -> GradeApp 'Idempotent ()
-writeState state value = GradeApp (writeIORef state value)
+writeState :: NumberState -> Natural -> Action 'Idempotent ()
+writeState state value = Action (writeIORef state value)
 
 -- Add to state operation (unsafe by nature)
 -- Non-idempotent operation, hence Unsafe grade
-addToState :: NumberState -> Natural -> GradeApp 'Unsafe ()
-addToState state addValue = GradeApp $ do
+addToState :: NumberState -> Natural -> Action 'Unsafe ()
+addToState state addValue = Action $ do
     current <- readIORef state
     writeIORef state (current + addValue)
 
 -- Randomise state operation (unsafe by nature)
 -- Non-deterministic operation, hence Unsafe grade
-randomiseState :: NumberState -> GradeApp 'Unsafe ()
-randomiseState state = GradeApp $ do
+randomiseState :: NumberState -> Action 'Unsafe ()
+randomiseState state = Action $ do
     randomVal <- fromIntegral <$> randomRIO (0, 1000 :: Int)
     writeIORef state randomVal
 
 
 
 -- Convenience constructors for different effect grades
-safe :: a -> GradeApp 'Safe a
-safe = GradeApp . return
+safe :: a -> Action 'Safe a
+safe = Action . return
 
-idempotent :: a -> GradeApp 'Idempotent a
-idempotent = GradeApp . return
+idempotent :: a -> Action 'Idempotent a
+idempotent = Action . return
 
-unsafe :: a -> GradeApp 'Unsafe a
-unsafe = GradeApp . return
+unsafe :: a -> Action 'Unsafe a
+unsafe = Action . return
 
 -- JSON data types
 data NumberRequest = NumberRequest { value :: Natural } deriving Show
@@ -176,14 +176,14 @@ type NumberState = IORef Natural
 
 -- Safe effect: HTTP request logging (non-observable to client)  
 -- Standard Apache/NCSA Common Log Format style logging
-logRequest :: String -> String -> GradeApp 'Safe ()
-logRequest method path = GradeApp $ do
+logRequest :: String -> String -> Action 'Safe ()
+logRequest method path = Action $ do
     putStrLn $ "- - [" ++ method ++ "] " ++ path ++ " 200 -"
     hFlush stdout
 
 -- Safe operation: read current number (no side effects)  
 -- Demonstrates algebraic composition with Monoid
-showNumber :: NumberState -> GradeApp 'Safe NumberResponse
+showNumber :: NumberState -> Action 'Safe NumberResponse
 showNumber state = 
     logRequest "GET" "/show" `gbind` \_ ->
     readState state `gbind` \n ->
@@ -192,7 +192,7 @@ showNumber state =
 
 -- Idempotent operation: set number (repeatable with same result)
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
-setNumber :: NumberState -> Natural -> GradeApp 'Idempotent NumberResponse
+setNumber :: NumberState -> Natural -> Action 'Idempotent NumberResponse
 setNumber state newValue = 
     logRequest "PUT" "/set" `gbind` \_ ->
     writeState state newValue `gbind` \_ ->
@@ -200,7 +200,7 @@ setNumber state newValue =
 
 -- Unsafe operation: add to number (observable side effects)
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
-addNumber :: NumberState -> Natural -> GradeApp 'Unsafe NumberResponse  
+addNumber :: NumberState -> Natural -> Action 'Unsafe NumberResponse  
 addNumber state addValue = 
     logRequest "POST" "/add" `gbind` \_ ->
     addToState state addValue `gbind` \_ ->
@@ -209,7 +209,7 @@ addNumber state addValue =
 
 -- Unsafe operation: randomise number (non-deterministic side effects)
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
-randomiseNumber :: NumberState -> GradeApp 'Unsafe NumberResponse
+randomiseNumber :: NumberState -> Action 'Unsafe NumberResponse
 randomiseNumber state = 
     logRequest "POST" "/randomise" `gbind` \_ ->
     randomiseState state `gbind` \_ ->
@@ -236,16 +236,16 @@ server state = showHandler
           :<|> staticHandler
   where
     showHandler :: Handler NumberResponse
-    showHandler = liftIO $ runGradeApp $ showNumber state
+    showHandler = liftIO $ runAction $ showNumber state
     
     setHandler :: NumberRequest -> Handler NumberResponse  
-    setHandler (NumberRequest n) = liftIO $ runGradeApp $ setNumber state n
+    setHandler (NumberRequest n) = liftIO $ runAction $ setNumber state n
         
     addHandler :: NumberRequest -> Handler NumberResponse
-    addHandler (NumberRequest n) = liftIO $ runGradeApp $ addNumber state n
+    addHandler (NumberRequest n) = liftIO $ runAction $ addNumber state n
 
     randomiseHandler :: Handler NumberResponse
-    randomiseHandler = liftIO $ runGradeApp $ randomiseNumber state
+    randomiseHandler = liftIO $ runAction $ randomiseNumber state
         
     staticHandler :: Server Raw
     staticHandler = serveDirectoryWith $ (defaultWebAppSettings "static")
