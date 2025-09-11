@@ -52,14 +52,14 @@
     
     <div class="input-group">
         <label>Set Number:</label><br>
-        <input type="number" id="setValue" placeholder="Enter number">
+        <input type="number" id="setValue" placeholder="Enter number" min="0">
         <button onclick="setNumber()">Set</button>
         <div class="effect-label">PUT /set (Idempotent)</div>
     </div>
     
     <div class="input-group">
         <label>Add to Number:</label><br>
-        <input type="number" id="addValue" placeholder="Enter number">
+        <input type="number" id="addValue" placeholder="Enter number" min="0">
         <button onclick="addNumber()">Add</button>
         <div class="effect-label">POST /add (Unsafe)</div>
     </div>
@@ -76,10 +76,16 @@
                 return;
             }
             
+            const numValue = parseInt(value);
+            if (numValue < 0) {
+                document.getElementById('result').innerText = 'Please enter a non-negative number';
+                return;
+            }
+            
             fetch('/set', {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({value: parseInt(value)})
+                body: JSON.stringify({value: numValue})
             })
             .then(response => {
                 if (!response.ok) {
@@ -103,10 +109,16 @@
                 return;
             }
             
+            const numValue = parseInt(value);
+            if (numValue < 0) {
+                document.getElementById('result').innerText = 'Please enter a non-negative number';
+                return;
+            }
+            
             fetch('/add', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({value: parseInt(value)})
+                body: JSON.stringify({value: numValue})
             })
             .then(response => {
                 if (!response.ok) {
