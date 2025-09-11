@@ -104,9 +104,6 @@ type family (g :: Grade) <> (h :: Grade) :: Grade where
 -- Graded monad for effect tracking with single grade parameter
 newtype Action (g :: Grade) a = Action { runAction :: IO a }
 
-instance Functor (Action g) where
-    fmap f (Action x) = Action (f <$> x)
-
 -- Graded monad operations with single grade parameter
 greturn :: a -> Action 'Pure a
 greturn x = Action (return x)
