@@ -24,9 +24,12 @@ dependencies:
 - servant
 - servant-server
 - warp
+- wai
+- wai-app-static
 - aeson
 - stm
 - transformers
+- text
 
 library:
   source-dirs: src

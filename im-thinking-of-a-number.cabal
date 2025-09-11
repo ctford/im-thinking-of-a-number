@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.38.1.
+-- This file has been generated from package.yaml by hpack version 0.38.2.
 --
 -- see: https://github.com/sol/hpack
 
@@ -35,7 +35,10 @@ library
     , servant
     , servant-server
     , stm
+    , text
     , transformers
+    , wai
+    , wai-app-static
     , warp
   default-language: Haskell2010
 
@@ -53,7 +56,10 @@ executable im-thinking-of-a-number-exe
     , servant
     , servant-server
     , stm
+    , text
     , transformers
+    , wai
+    , wai-app-static
     , warp
   default-language: Haskell2010
 
@@ -74,6 +80,9 @@ test-suite im-thinking-of-a-number-test
     , servant-client
     , servant-server
     , stm
+    , text
     , transformers
+    , wai
+    , wai-app-static
     , warp
   default-language: Haskell2010
