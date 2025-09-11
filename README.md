@@ -5,7 +5,7 @@ A Haskell web application demonstrating how to use graded monad effects to typec
 ## Tech Stack
 
 - **Web Framework**: Servant (type-safe HTTP APIs)
-- **Effects System**: Graded monad with single type parameter and algebraic composition
+- **Effects System**: Graded monad with Monoid composition using `<>` operator
 - **Type System**: Grade hierarchy (Pure < Safe < Idempotent < Unsafe) with type-safe transitions  
 - **Data Types**: Natural numbers for semantic correctness
 - **Server**: Warp (high-performance web server)
@@ -16,17 +16,18 @@ A Haskell web application demonstrating how to use graded monad effects to typec
 
 This application demonstrates graded monad effects through a number-thinking game:
 
-### HTTP Operations with Effect Grades
-- **GET /show**: `GradeApp 'Safe` (read-only, logging effects)
-- **PUT /set**: `GradeApp 'Idempotent` (repeatable operations)  
+### HTTP Operations with Natural Semantic Grades
+- **GET /show**: `GradeApp 'Safe` (read-only operations)
+- **PUT /set**: `GradeApp 'Idempotent` (repeatable with same result)  
 - **POST /add**: `GradeApp 'Unsafe` (observable side effects)
 - **POST /randomise**: `GradeApp 'Unsafe` (non-deterministic effects)
 
 ### Type System Features
-- **Algebraic Composition**: Type families implement proper grade algebra
+- **Monoid Composition**: Grade forms a join-semilattice with `<>` operator
 - **Effect Tracking**: Graded monads prevent unsafe grade downgrades
 - **HTTP Semantics**: Type system enforces correct HTTP method usage
 - **Natural Numbers**: Prevents negative values with validation chain
+- **Semantic Grading**: Operations have their natural effect grades
 
 ## Quick Start
 
@@ -49,28 +50,34 @@ This is an experiment in one-shot application construction. The developer (Chris
 ## Implementation Status
 
 ### Complete ✅
-- **Graded Monad System**: Single type parameter with Max operation for composition
-- **Grade Hierarchy**: Complete `Pure < Safe < Idempotent < Unsafe` with semantic operation grading
-- **HTTP API**: All four routes with proper method semantics
+- **Monoid Grade System**: Standard Semigroup/Monoid instances with `<>` composition
+- **Grade Hierarchy**: Complete `Pure < Safe < Idempotent < Unsafe` lattice structure
+- **HTTP API**: All four routes with natural semantic grading
+- **Simplified Operations**: Clean API without manual grade elevation
 - **Type Safety**: Compile-time prevention of grade downgrades  
 - **Natural Numbers**: Full validation chain (HTML + JS + Haskell)
 - **Frontend**: HTML5 interface with client-side validation
 - **Error Handling**: Proper HTTP status codes and JSON error responses
 
 ### Key Achievements
-- **Type-Level Programming**: Uses `Max` type family for algebraic composition
-- **Semantic Grading**: Operations have their natural grades (write = Idempotent, add = Unsafe)
+- **Type-Level Programming**: Uses type-level `<>` operator for Monoid composition
+- **Semantic Grading**: Operations reflect their true nature (no artificial elevation needed)
+- **Standard Abstractions**: Leverages Haskell's Semigroup/Monoid classes
 - **Effect Tracking**: Each HTTP operation has correct grade transitions
 - **Semantic Correctness**: Natural numbers prevent invalid negative states
 - **Development Speed**: Complete implementation in ~4 hours from scratch
 
 ## Theoretical Foundation
 
-This implementation is based on **Graded Monads** as described in:
+This implementation demonstrates **Grade as Monoid** for effect composition:
 
 > Orchard, Dominic, et al. "[Effect systems via graded monads](https://www.cs.kent.ac.uk/people/staff/dao7/publ/haskell14-effects.pdf)." *Proceedings of the 2014 ACM SIGPLAN symposium on Haskell*. 2014.
 
-The key insight is that graded monads use a single type parameter to track effects, with composition via a monoidal structure (Max operation in our grade lattice).
+**Key Innovation**: Grade lattice forms a natural join-semilattice that is a Monoid:
+- `Pure` is `mempty` (identity element)
+- `<>` is `max` operation (least upper bound)
+- Composition: `Safe <> Idempotent = Idempotent` automatically
+- Operations have natural semantic grades without manual elevation
 
 ## Code Structure
 

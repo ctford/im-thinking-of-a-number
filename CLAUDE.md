@@ -38,14 +38,15 @@ cabal clean                    # Clean build artifacts
 - Effect system simulation with HTTP request logging
 - Git repository with all files committed
 
-### Haskell Implementation ✅ Complete - Graded Monad Version
+### Haskell Implementation ✅ Complete - Monoid Grade Version
 - ✅ Haskell project structure (Cabal-based)
 - ✅ All dependencies resolved and building successfully 
 - ✅ HTML frontend served by Haskell static file server
-- ✅ **Graded monad implementation with single type parameter** 
-- ✅ API endpoints (/show, /set, /add, /randomise) with graded monad effects
-- ✅ Complete grade hierarchy with semantic operation grading
-- ✅ Comprehensive test suite verifying algebraic laws
+- ✅ **Grade as Monoid implementation with `<>` composition** 
+- ✅ API endpoints (/show, /set, /add, /randomise) with natural semantic grading
+- ✅ Complete grade lattice with automatic Monoid composition
+- ✅ Comprehensive test suite verifying Monoid laws
+- ✅ Simplified API: no manual grade elevation needed
 
 ## Testing the Current Application
 
