@@ -1,4 +1,4 @@
-# Claude Development Notes
+# Development Guide
 
 ## Project Structure
 ```
@@ -29,48 +29,14 @@ cabal clean                    # Clean build artifacts
 
 ## Current Implementation
 
-### Step 1: Complete Working Demonstration ✅
-- Python server implementing all required functionality on port 8080
-- HTML frontend with JavaScript for proper HTTP method calls
-- Complete API: GET /show, PUT /set, POST /add
-- HTTP method validation with 405 responses
-- Effect system simulation with HTTP request logging
-- Git repository with all files committed
+### Implementation Status ✅ Complete
+- ✅ **Graded monad system** with proper type-level grade combination
+- ✅ **HTTP API endpoints** (/show, /set, /add, /randomise) with semantic grading
+- ✅ **Grade hierarchy** (Pure < Safe < Idempotent < Unsafe) with automatic composition
+- ✅ **Comprehensive test suite** (9 examples) verifying HTTP semantics and graded monad laws
+- ✅ **HTML frontend** with client-side validation and proper HTTP method usage
+- ✅ **Cabal build system** with clean project structure
 
-### Haskell Implementation ✅ Complete - Monoid Grade Version
-- ✅ Haskell project structure (Cabal-based)
-- ✅ All dependencies resolved and building successfully 
-- ✅ HTML frontend served by Haskell static file server
-- ✅ **Graded monad implementation with proper "g" prefix naming**
-- ✅ API endpoints (/show, /set, /add, /randomise) with natural semantic grading
-- ✅ Complete grade lattice with automatic Monoid composition
-- ✅ Comprehensive test suite verifying Monoid laws
-- ✅ Simplified API: no manual grade elevation needed
-
-### Recent Changes ✅
-- ✅ **Renamed graded monad operations from "i" to "g" prefix**
-  - `ireturn` → `greturn` (graded return)
-  - `ibind` → `gbind` (graded bind)  
-  - Removed `gparallel` (unused, Applicative provides same functionality)
-- ✅ **Simplified type-level grade combination**
-  - Removed redundant `Max` type family
-  - Moved all grade combination logic directly into `<>` type family
-  - Used wildcards to reduce from 11 cases to 7 cases
-  - Eliminated unnecessary indirection layer
-- ✅ **Removed redundant pureValue function**
-  - Eliminated `pureValue` alias that was just `greturn`
-  - Use `greturn` directly for pure operations
-  - Cleaner API with standard graded monad terminology
-- ✅ **Removed unused Grade instances**
-  - Removed Show, Eq, Ord deriving clauses (not used at runtime)
-  - Removed Semigroup and Monoid instances (only type-level composition used)
-  - Grade type only exists at type level, no runtime values needed
-- ✅ **Removed educational demonstration functions**
-  - Removed 5 demo functions that used improper HTTP verbs ("DEMO", "SEQ", etc.)
-  - Removed corresponding tests (14 → 9 test examples)
-  - Focus on proper HTTP semantics with GET, PUT, POST methods only
-  - Cleaner, production-focused codebase
-- ✅ **All tests passing with streamlined type system**
 
 ## Testing the Current Application
 
