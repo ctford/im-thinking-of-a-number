@@ -63,6 +63,7 @@ This is an experiment in one-shot application construction. The developer (Chris
 - **Type-Level Programming**: Uses type-level `<>` operator for Monoid composition
 - **Semantic Grading**: Operations reflect their true nature (no artificial elevation needed)
 - **Standard Abstractions**: Leverages Haskell's Semigroup/Monoid classes
+- **Clean API**: Simple function names (`safe`, `idempotent`, `unsafe` for returns)
 - **Effect Tracking**: Each HTTP operation has correct grade transitions
 - **Semantic Correctness**: Natural numbers prevent invalid negative states
 - **Development Speed**: Complete implementation in ~4 hours from scratch

@@ -170,14 +170,14 @@ pureValue = ireturn
 
 
 -- Convenience constructors for different effect grades
-safeReturn :: a -> GradeApp 'Safe a
-safeReturn = GradeApp . return
+safe :: a -> GradeApp 'Safe a
+safe = GradeApp . return
 
-idempotentReturn :: a -> GradeApp 'Idempotent a
-idempotentReturn = GradeApp . return
+idempotent :: a -> GradeApp 'Idempotent a
+idempotent = GradeApp . return
 
-unsafeReturn :: a -> GradeApp 'Unsafe a
-unsafeReturn = GradeApp . return
+unsafe :: a -> GradeApp 'Unsafe a
+unsafe = GradeApp . return
 
 -- Strengthen is impossible (no downgrading) - this would be a type error
 
@@ -194,10 +194,10 @@ instance ToJSON NumberResponse where
 -- Global state for the number
 type NumberState = IORef Natural
 
--- Safe effect: HTTP request logging (non-observable to client)
--- Pure → Safe: introducing a safe effect
+-- Safe effect: HTTP request logging (non-observable to client)  
+-- Standard Apache/NCSA Common Log Format style logging
 logRequest :: String -> String -> GradeApp 'Safe ()
-logRequest method path = liftSafeIO $ putStrLn $ "HTTP Log: " ++ method ++ " " ++ path
+logRequest method path = liftSafeIO $ putStrLn $ "- - [" ++ method ++ "] " ++ path ++ " 200 -"
 
 -- Safe operation: read current number (no side effects)  
 -- Demonstrates algebraic composition with Monoid
@@ -205,7 +205,7 @@ showNumber :: NumberState -> GradeApp 'Safe NumberResponse
 showNumber state = 
     logRequest "GET" "/show" `ibind` \_ ->
     readState state `ibind` \n ->
-    safeReturn (NumberResponse n)
+    safe (NumberResponse n)
 
 -- Idempotent operation: set number (repeatable with same result)
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
@@ -213,7 +213,7 @@ setNumber :: NumberState -> Natural -> GradeApp 'Idempotent NumberResponse
 setNumber state newValue = 
     logRequest "PUT" "/set" `ibind` \_ ->
     writeState state newValue `ibind` \_ ->
-    idempotentReturn (NumberResponse newValue)
+    idempotent (NumberResponse newValue)
 
 -- Unsafe operation: add to number (observable side effects)
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
@@ -222,7 +222,7 @@ addNumber state addValue =
     logRequest "POST" "/add" `ibind` \_ ->
     addToState state addValue `ibind` \_ ->
     readState state `ibind` \newValue ->
-    unsafeReturn (NumberResponse newValue)
+    unsafe (NumberResponse newValue)
 
 -- Generate random number (unsafe by nature)
 -- Non-deterministic operation, hence Unsafe grade
@@ -237,7 +237,7 @@ randomiseNumber state =
     -- Random generation is inherently unsafe (non-deterministic)
     randomValue `ibind` \randomVal ->
     writeState state randomVal `ibind` \_ ->
-    unsafeReturn (NumberResponse randomVal)
+    unsafe (NumberResponse randomVal)
 
 -- ============================================================================
 -- ALGEBRAIC COMPOSITION EXAMPLES - Educational Demonstrations
@@ -261,7 +261,7 @@ absorptionLawDemo state value =
     -- Step 2: Safe <> Idempotent = Idempotent (Monoid composition)
     writeState state value `ibind` \_ ->
     -- Step 3: Already at Idempotent grade naturally
-    idempotentReturn ()
+    idempotent ()
 
 -- Example 3: Sequential Composition Chain
 -- Shows natural semantic grading with Monoid composition
@@ -274,7 +274,7 @@ sequentialCompositionDemo state newValue =
     -- Step 3: Safe <> Idempotent = Idempotent (Monoid composition)
     writeState state newValue `ibind` \_ ->
     -- Step 4: Already at Idempotent grade
-    idempotentReturn oldValue
+    idempotent oldValue
 
 -- Example 4: Parallel Composition with Monoid
 -- Mathematical: Safe <> Safe = Safe (Monoid idempotence)
@@ -297,7 +297,7 @@ gradeElevationDemo state addValue =
     -- Safe <> Unsafe = Unsafe (Monoid composition to maximum)
     addToState state addValue `ibind` \_ ->
     -- Already at Unsafe grade
-    unsafeReturn (current + addValue)
+    unsafe (current + addValue)
 
 -- Servant API definition with proper HTTP methods
 type API = "show" :> Get '[JSON] NumberResponse
