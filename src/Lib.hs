@@ -80,19 +80,19 @@ instance Semigroup Grade where
 instance Monoid Grade where
     mempty = Pure  -- Pure is the identity element (⊥ in the lattice)
 
--- Type-level Monoid operation for Grade composition
+-- Type-level max function for Grade comparison
+type family Max (g :: Grade) (h :: Grade) :: Grade where
+    Max g g = g  -- idempotent: max(g, g) = g
+    Max 'Pure g = g  -- Pure is minimum
+    Max g 'Pure = g  -- Pure is minimum
+    Max 'Unsafe _ = 'Unsafe  -- Unsafe is maximum
+    Max _ 'Unsafe = 'Unsafe  -- Unsafe is maximum
+    Max 'Safe 'Idempotent = 'Idempotent  -- Safe < Idempotent
+    Max 'Idempotent 'Safe = 'Idempotent  -- Safe < Idempotent
+
+-- Type-level Monoid operation using max
 type family (g :: Grade) <> (h :: Grade) :: Grade where
-    'Pure <> g = g
-    g <> 'Pure = g
-    'Safe <> 'Safe = 'Safe
-    'Safe <> 'Idempotent = 'Idempotent
-    'Safe <> 'Unsafe = 'Unsafe
-    'Idempotent <> 'Safe = 'Idempotent
-    'Idempotent <> 'Idempotent = 'Idempotent
-    'Idempotent <> 'Unsafe = 'Unsafe
-    'Unsafe <> 'Safe = 'Unsafe
-    'Unsafe <> 'Idempotent = 'Unsafe
-    'Unsafe <> 'Unsafe = 'Unsafe
+    g <> h = Max g h
 
 -- ============================================================================
 -- MONOID COMPOSITION - Grade forms a join-semilattice
