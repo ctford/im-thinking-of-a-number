@@ -16,7 +16,7 @@ module Lib
     , resetNumber
     -- Export graded monad primitives for testing  
     , Action(..)
-    , greturn
+    , gpure
     , gbind
     , logRequest
     -- Export data types for testing
@@ -104,10 +104,6 @@ type family (g :: Grade) <> (h :: Grade) :: Grade where
 -- Graded monad for effect tracking with single grade parameter
 newtype Action (g :: Grade) a = Action { runAction :: IO a }
 
--- Graded monad operations with single grade parameter
-greturn :: a -> Action 'Pure a
-greturn = Action . return
-
 -- Graded bind: composition uses Monoid operation (<>)
 gbind :: Action g a -> (a -> Action h b) -> Action (g <> h) b
 gbind (Action x) f = Action (x >>= runAction . f)
@@ -147,6 +143,9 @@ randomiseState state = Action $ do
 
 
 -- Convenience constructors for different effect grades
+gpure :: a -> Action 'Pure a
+gpure = Action . return
+
 safe :: a -> Action 'Safe a
 safe = Action . return
 

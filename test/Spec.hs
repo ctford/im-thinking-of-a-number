@@ -87,7 +87,7 @@ main = hspec $ do
       state <- newIORef (777 :: Natural)
       -- Pure computation followed by Safe operation  
       result <- runAction $ 
-        greturn () `gbind` \_ ->           -- Pure computation (mempty)
+        gpure () `gbind` \_ ->           -- Pure computation (mempty)
         Action (readIORef state)         -- Pure <> Safe = Safe
       result `shouldBe` 777
       
