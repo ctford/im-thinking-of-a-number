@@ -26,6 +26,7 @@ module Lib
     -- Export data types for testing
     , NumberResponse(..)
     , NumberState
+    , HttpVerb(..)
     ) where
 
 import Network.Wai
@@ -161,6 +162,15 @@ idempotent = Action . return
 unsafe :: a -> Action 'Unsafe a
 unsafe = Action . return
 
+-- HTTP verb sum type for type-safe logging
+data HttpVerb = HttpGET | HttpPUT | HttpPOST | HttpDELETE deriving Eq
+
+instance Show HttpVerb where
+    show HttpGET    = "GET"
+    show HttpPUT    = "PUT" 
+    show HttpPOST   = "POST"
+    show HttpDELETE = "DELETE"
+
 -- JSON data types
 data NumberRequest = NumberRequest { value :: Natural } deriving Show
 data NumberResponse = NumberResponse { current :: Natural } deriving Show
@@ -176,19 +186,19 @@ type NumberState = IORef Natural
 
 -- Safe effect: HTTP request logging (non-observable to client)  
 -- Standard Apache/NCSA Common Log Format style logging
-logRequest :: String -> String -> Maybe Natural -> Action 'Safe ()
-logRequest method path maybeValue = Action $ do
+logRequest :: HttpVerb -> String -> Maybe Natural -> Action 'Safe ()
+logRequest verb path maybeValue = Action $ do
     let valueStr = case maybeValue of
           Nothing -> ""
           Just v  -> " value=" ++ show v
-    putStrLn $ "- - [" ++ method ++ "] " ++ path ++ " 200 -" ++ valueStr
+    putStrLn $ "- - [" ++ show verb ++ "] " ++ path ++ " 200 -" ++ valueStr
     hFlush stdout
 
 -- Safe operation: read current number (no side effects)  
 -- Demonstrates algebraic composition with Monoid
 showNumber :: NumberState -> Action 'Safe NumberResponse
 showNumber state = 
-    logRequest "GET" "/show" Nothing `gbind` \_ ->
+    logRequest HttpGET "/show" Nothing `gbind` \_ ->
     readState state `gbind` \n ->
     safe (NumberResponse n)
 
@@ -197,7 +207,7 @@ showNumber state =
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
 setNumber :: NumberState -> Natural -> Action 'Idempotent NumberResponse
 setNumber state newValue = 
-    logRequest "PUT" "/set" (Just newValue) `gbind` \_ ->
+    logRequest HttpPUT "/set" (Just newValue) `gbind` \_ ->
     writeState newValue state `gbind` \_ ->
     idempotent (NumberResponse newValue)
 
@@ -205,7 +215,7 @@ setNumber state newValue =
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
 addNumber :: NumberState -> Natural -> Action 'Unsafe NumberResponse  
 addNumber state addValue = 
-    logRequest "POST" "/add" (Just addValue) `gbind` \_ ->
+    logRequest HttpPOST "/add" (Just addValue) `gbind` \_ ->
     addToState addValue state `gbind` \_ ->
     readState state `gbind` \newValue ->
     unsafe (NumberResponse newValue)
@@ -214,7 +224,7 @@ addNumber state addValue =
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
 randomiseNumber :: NumberState -> Action 'Unsafe NumberResponse
 randomiseNumber state = 
-    logRequest "POST" "/randomise" Nothing `gbind` \_ ->
+    logRequest HttpPOST "/randomise" Nothing `gbind` \_ ->
     randomiseState state `gbind` \_ ->
     readState state `gbind` \randomVal ->
     unsafe (NumberResponse randomVal)
