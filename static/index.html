@@ -49,25 +49,27 @@
 </head>
 <body>
     <h1>I'm Thinking of a Number</h1>
-    <p>This demonstrates how to use indexed monad effects to typecheck HTTP method semantics.</p>
+    <p>This demonstrates how to use graded monad effects to typecheck HTTP method semantics.</p>
     
     <div class="input-group">
         <label>Set Number:</label><br>
-        <input type="number" id="setValue" placeholder="Enter number" min="0">
+        <input type="number" id="setValue" placeholder="Enter natural number" min="0" step="1">
         <button onclick="setNumber()">Set</button>
         <div class="effect-label">PUT /set (Idempotent)</div>
     </div>
     
     <div class="input-group">
         <label>Add to Number:</label><br>
-        <input type="number" id="addValue" placeholder="Enter number" min="0">
+        <input type="number" id="addValue" placeholder="Enter natural number" min="0" step="1">
         <button onclick="addNumber()">Add</button>
         <div class="effect-label">POST /add (Unsafe)</div>
     </div>
     
     <div class="input-group">
         <label>Randomise Number (0-1000):</label><br>
-        <button onclick="randomizeNumber()">Randomise</button>
+        <div style="height: 38px; display: flex; align-items: center;">
+            <button onclick="randomizeNumber()">Randomise</button>
+        </div>
         <div class="effect-label">POST /randomise (Unsafe)</div>
     </div>
     
@@ -82,9 +84,10 @@
                 return;
             }
             
-            const numValue = parseInt(value);
-            if (numValue < 0) {
-                document.getElementById('result').innerText = 'Please enter a non-negative number';
+            // Validate that input is a natural number (non-negative integer)
+            const numValue = Number(value);
+            if (!Number.isInteger(numValue) || numValue < 0) {
+                document.getElementById('result').innerText = 'Please enter a natural number (non-negative integer)';
                 return;
             }
             
@@ -115,9 +118,10 @@
                 return;
             }
             
-            const numValue = parseInt(value);
-            if (numValue < 0) {
-                document.getElementById('result').innerText = 'Please enter a non-negative number';
+            // Validate that input is a natural number (non-negative integer)
+            const numValue = Number(value);
+            if (!Number.isInteger(numValue) || numValue < 0) {
+                document.getElementById('result').innerText = 'Please enter a natural number (non-negative integer)';
                 return;
             }
             

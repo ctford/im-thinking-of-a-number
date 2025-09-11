@@ -42,6 +42,11 @@ cabal clean                    # Clean build artifacts
   - `randomiseState :: NumberState -> GradeApp 'Unsafe ()` - generates random number and writes to state
   - `randomiseNumber` now calls `randomiseState` followed by `readState` to demonstrate explicit state reading pattern
   - Maintains proper separation of concerns between state mutation and value retrieval
+- ✅ **Enhanced HTML validation for natural numbers** - Improved client-side validation to only accept natural numbers
+  - Added `step="1"` to HTML inputs to prevent decimal entry
+  - Updated JavaScript validation to use `Number.isInteger()` for robust integer checking
+  - Updated placeholders and error messages to clearly indicate "natural number" requirement
+  - Fixed terminology from "indexed monad effects" to "graded monad effects"
 
 ## Testing the Current Application
 
