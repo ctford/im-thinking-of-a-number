@@ -37,6 +37,9 @@ Thumbs.db
 *.tmp
 *~
 
+# Server logs
+server.log
+
 # Python (from earlier proof-of-concept)
 __pycache__/
 *.pyc

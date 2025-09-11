@@ -19,7 +19,22 @@ cabal run im-thinking-of-a-number-exe  # Run the server
 cabal test                     # Run tests
 ```
 
-**Note**: This project uses Cabal for package management and building.
+### Run with Logging
+```bash
+# Run server with both stdout and stderr to log file
+cabal run im-thinking-of-a-number-exe > server.log 2>&1
+
+# Run server with unbuffered output for immediate logging
+stdbuf -oL -eL cabal run im-thinking-of-a-number-exe > server.log 2>&1
+
+# View logs in real-time while server runs
+tail -f server.log
+
+# View logs after server stops (logs may be buffered)
+cat server.log
+```
+
+**Note**: This project uses Cabal for package management and building. HTTP request logs are written to stdout using `putStrLn` and may be buffered until the server stops or the buffer fills.
 
 ### Development
 ```bash
