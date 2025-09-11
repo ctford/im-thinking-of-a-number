@@ -32,7 +32,7 @@ module Lib
 
 import Network.Wai
 import Network.Wai.Handler.Warp
-import Servant
+import Servant hiding (GET, PUT, POST, DELETE)
 import Servant.API.Raw
 import Network.Wai.Application.Static
 import WaiAppStatic.Types
@@ -164,13 +164,7 @@ unsafe :: a -> Action 'Unsafe a
 unsafe = Action . return
 
 -- HTTP verb sum type for type-safe logging  
-data HttpVerb = HttpGET | HttpPUT | HttpPOST | HttpDELETE deriving Eq
-
-instance Show HttpVerb where
-    show HttpGET    = "GET"
-    show HttpPUT    = "PUT"
-    show HttpPOST   = "POST" 
-    show HttpDELETE = "DELETE"
+data HttpVerb = GET | PUT | POST | DELETE deriving (Show, Eq)
 
 -- JSON data types
 data NumberRequest = NumberRequest { value :: Natural } deriving Show
@@ -199,7 +193,7 @@ logRequest verb path maybeValue = Action $ do
 -- Demonstrates algebraic composition with Monoid
 showNumber :: NumberState -> Action 'Safe NumberResponse
 showNumber state = 
-    logRequest HttpGET "/show" Nothing `gbind` \_ ->
+    logRequest GET "/show" Nothing `gbind` \_ ->
     readState state `gbind` \n ->
     safe (NumberResponse n)
 
@@ -208,7 +202,7 @@ showNumber state =
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
 setNumber :: NumberState -> Natural -> Action 'Idempotent NumberResponse
 setNumber state newValue = 
-    logRequest HttpPUT "/set" (Just newValue) `gbind` \_ ->
+    logRequest PUT "/set" (Just newValue) `gbind` \_ ->
     writeState newValue state `gbind` \_ ->
     idempotent (NumberResponse newValue)
 
@@ -216,7 +210,7 @@ setNumber state newValue =
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
 addNumber :: NumberState -> Natural -> Action 'Unsafe NumberResponse  
 addNumber state addValue = 
-    logRequest HttpPOST "/add" (Just addValue) `gbind` \_ ->
+    logRequest POST "/add" (Just addValue) `gbind` \_ ->
     addToState addValue state `gbind` \_ ->
     readState state `gbind` \newValue ->
     unsafe (NumberResponse newValue)
@@ -225,7 +219,7 @@ addNumber state addValue =
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
 randomiseNumber :: NumberState -> Action 'Unsafe NumberResponse
 randomiseNumber state = 
-    logRequest HttpPOST "/randomise" Nothing `gbind` \_ ->
+    logRequest POST "/randomise" Nothing `gbind` \_ ->
     randomiseState state `gbind` \_ ->
     readState state `gbind` \randomVal ->
     unsafe (NumberResponse randomVal)
@@ -234,7 +228,7 @@ randomiseNumber state =
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
 resetNumber :: NumberState -> Action 'Idempotent NumberResponse
 resetNumber state = 
-    logRequest HttpDELETE "/reset" Nothing `gbind` \_ ->
+    logRequest DELETE "/reset" Nothing `gbind` \_ ->
     writeState 0 state `gbind` \_ ->
     idempotent (NumberResponse 0)
 
