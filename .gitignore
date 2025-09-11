@@ -1,20 +1,42 @@
+# Haskell build artifacts
+dist/
+dist-newstyle/
 .stack-work/
-*~
-.DS_Store
-*.swp
-*.swo
 .cabal-sandbox/
 cabal.sandbox.config
 *.o
 *.hi
-dist/
-dist-newstyle/
-.vscode/
-.idea/
+*.dyn_o
+*.dyn_hi
 *.prof
 *.aux
 *.hp
 *.eventlog
+*.tix
+
+# GHC/GHCi
+.ghci
+.ghc.environment.*
 .HTF/
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+*~
+*.swp
+*.swo
+Thumbs.db
+
+# Temporary/backup files
+*.bak
+*.tmp
+*~
+
+# Python (from earlier proof-of-concept)
 __pycache__/
 *.pyc
