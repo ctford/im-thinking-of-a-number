@@ -21,30 +21,30 @@ main = hspec $ do
       result <- runGradeApp $ identityLawDemo state
       result `shouldBe` 42
       
-    it "demonstrates absorption law with grade elevation" $ do  
-      -- Test: Max(Safe, Safe) = Safe, then elevation to Idempotent
-      -- Shows how grades can be elevated
+    it "demonstrates associativity law with Monoid composition" $ do  
+      -- Test: Safe <> Idempotent = Idempotent (Monoid composition)
+      -- Shows natural semantic grading
       state <- newIORef (0 :: Natural)
       runGradeApp $ absorptionLawDemo state 100
       finalValue <- readIORef state
       finalValue `shouldBe` 100
       
-    it "verifies sequential composition preserves ordering" $ do
-      -- Test: Max operations maintain grade monotonicity
+    it "verifies sequential composition with Monoid operations" $ do
+      -- Test: Monoid operations maintain grade monotonicity
       state <- newIORef (50 :: Natural) 
       oldValue <- runGradeApp $ sequentialCompositionDemo state 75
       newValue <- readIORef state
       oldValue `shouldBe` 50  -- Returns the old value
       newValue `shouldBe` 75  -- State updated to new value
       
-    it "demonstrates parallel composition uses Max operation" $ do
-      -- Test: Max(Safe, Safe) = Safe for parallel operations
+    it "demonstrates parallel composition uses Monoid operation" $ do
+      -- Test: Safe <> Safe = Safe for parallel operations
       state <- newIORef (25 :: Natural)
       ((), retrievedValue) <- runGradeApp $ parallelCompositionDemo state
       retrievedValue `shouldBe` 25
       
-    it "shows complete grade elevation chain to Unsafe" $ do
-      -- Test: Max operations leading to Unsafe (maximum grade reached)
+    it "shows complete grade composition chain to Unsafe" $ do
+      -- Test: Monoid operations leading to Unsafe (maximum grade reached)
       state <- newIORef (10 :: Natural)
       result <- runGradeApp $ gradeElevationDemo state 5  
       finalState <- readIORef state
@@ -109,35 +109,34 @@ main = hspec $ do
       result `shouldBe` 42
 
   describe "Algebraic Laws Verification" $ do
-    it "proves identity law: Max(Pure, g) = g" $ do
-      -- Mathematical verification of identity element
+    it "proves identity law: Pure <> g = g (Monoid)" $ do
+      -- Mathematical verification of Monoid identity element
       state <- newIORef (777 :: Natural)
       -- Pure computation followed by Safe operation  
       result <- runGradeApp $ 
-        ireturn () `ibind` \_ ->           -- Pure computation
-        liftSafeIO (readIORef state)       -- Max(Pure, Safe) = Safe
+        ireturn () `ibind` \_ ->           -- Pure computation (mempty)
+        liftSafeIO (readIORef state)       -- Pure <> Safe = Safe
       result `shouldBe` 777
       
-    it "proves absorption law with Max operation" $ do  
-      -- Max operation combines grades, then elevation to higher grade
+    it "proves associativity with Monoid operation" $ do  
+      -- Monoid operation combines grades naturally
       state <- newIORef (555 :: Natural)
       runGradeApp $ 
-        logRequest "TEST" "/absorption" `ibind` \_ ->     -- Safe effect
-        safeContinue (writeIORef state 888) `ibind` \_ -> -- Max(Safe, Safe) = Safe  
-        weakenToIdempotent (safeContinue (return ()))     -- Safe → Idempotent
+        logRequest "TEST" "/associativity" `ibind` \_ ->  -- Safe effect
+        liftSafeIO (writeIORef state 888) `ibind` \_ ->    -- Safe <> Safe = Safe  
+        liftSafeIO (return ())                               -- Natural Safe grade
       finalValue <- readIORef state
       finalValue `shouldBe` 888
       
-    it "proves monotonicity: grades only increase, never decrease" $ do
+    it "proves monotonicity: Monoid composition only increases grades" $ do
       -- Once you reach a higher grade, you cannot go back down
-      -- This is enforced by the type system - attempting to "strengthen"
-      -- from Unsafe back to Safe would be a compile-time error
+      -- This is enforced by the type system - no "strengthening" possible
       
-      -- We can demonstrate that weakening always works:
+      -- Demonstrate natural grade composition:
       state <- newIORef (333 :: Natural)
       NumberResponse result <- runGradeApp $ 
-        safeContinue (readIORef state) `ibind` \value ->              -- Safe
-        weakenToUnsafe (safeContinue (return (NumberResponse value))) -- Safe → Unsafe  
+        liftSafeIO (readIORef state) `ibind` \value ->      -- Safe grade
+        GradeApp (return (NumberResponse value))             -- Natural Unsafe grade
       result `shouldBe` 333
       
-      -- But the reverse (strengthening) is impossible and caught at compile time
+      -- The reverse (going from Unsafe to Safe) is impossible at compile time

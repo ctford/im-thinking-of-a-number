@@ -24,14 +24,11 @@ module Lib
     , ireturn
     , ibind
     , liftSafeIO
-    , safeContinue
-    , weakenToIdempotent
-    , weakenToUnsafe
     , logRequest
     -- Export IORef helper functions
-    , safeReadState
-    , idempotentWriteState
-    , unsafeAddToState
+    , readState
+    , writeState
+    , addToState
     , pureValue
     -- Export data types for testing
     , NumberResponse(..)
@@ -76,55 +73,52 @@ import System.Random
 -}
 data Grade = Pure | Safe | Idempotent | Unsafe deriving (Show, Eq, Ord)
 
+-- Monoid instance for Grade: forms a join-semilattice with max operation
+instance Semigroup Grade where
+    (<>) = max  -- Uses the natural Ord instance: Pure < Safe < Idempotent < Unsafe
+
+instance Monoid Grade where
+    mempty = Pure  -- Pure is the identity element (⊥ in the lattice)
+
+-- Type-level Monoid operation for Grade composition
+type family (g :: Grade) <> (h :: Grade) :: Grade where
+    'Pure <> g = g
+    g <> 'Pure = g
+    'Safe <> 'Safe = 'Safe
+    'Safe <> 'Idempotent = 'Idempotent
+    'Safe <> 'Unsafe = 'Unsafe
+    'Idempotent <> 'Safe = 'Idempotent
+    'Idempotent <> 'Idempotent = 'Idempotent
+    'Idempotent <> 'Unsafe = 'Unsafe
+    'Unsafe <> 'Safe = 'Unsafe
+    'Unsafe <> 'Idempotent = 'Unsafe
+    'Unsafe <> 'Unsafe = 'Unsafe
+
 -- ============================================================================
--- ALGEBRAIC COMPOSITION - Type families implementing grade algebra
+-- MONOID COMPOSITION - Grade forms a join-semilattice
 -- ============================================================================
 {-
-   Sequential Composition Laws (⊕ = Combine):
+   Monoid Laws for Grade composition:
    
    IDENTITY LAWS:
-   • Pure ⊕ g = g           (Pure is left identity)
-   • g ⊕ Pure = g           (Pure is right identity)
+   • mempty <> g = g        (Pure is left identity)
+   • g <> mempty = g        (Pure is right identity)
    
-   ABSORPTION LAWS (higher grades absorb lower):
-   • Safe ⊕ Safe = Safe
-   • Safe ⊕ Idempotent = Idempotent     (Safe absorbed by Idempotent)
-   • Safe ⊕ Unsafe = Unsafe            (Safe absorbed by Unsafe)
-   • Idempotent ⊕ Unsafe = Unsafe      (Idempotent absorbed by Unsafe)
+   ASSOCIATIVITY:
+   • (g <> h) <> i = g <> (h <> i)    (Composition is associative)
    
-   COMMUTATIVITY (for same grades):
-   • g ⊕ g = g              (Same grade is idempotent)
+   ABSORPTION (via max operation):
+   • Safe <> Safe = Safe
+   • Safe <> Idempotent = Idempotent     (max takes higher grade)
+   • Safe <> Unsafe = Unsafe            (max takes higher grade)
+   • Idempotent <> Unsafe = Unsafe      (max takes higher grade)
+   
+   IDEMPOTENCE:
+   • g <> g = g             (max is idempotent)
    
    MONOTONICITY:
-   • If g₁ ⊑ g₂, then h ⊕ g₁ ⊑ h ⊕ g₂  (Grade can only increase)
+   • If g₁ ≤ g₂, then h <> g₁ ≤ h <> g₂  (Grade can only increase)
 -}
-type family Combine (i :: Grade) (j :: Grade) :: Grade where
-  -- Identity laws: Pure is identity element
-  Combine 'Pure g = g
-  Combine g 'Pure = g
-  
-  -- Absorption laws: higher grades absorb lower ones
-  Combine 'Safe 'Safe = 'Safe
-  Combine 'Safe 'Idempotent = 'Idempotent  
-  Combine 'Safe 'Unsafe = 'Unsafe
-  Combine 'Idempotent 'Safe = 'Idempotent
-  Combine 'Idempotent 'Idempotent = 'Idempotent
-  Combine 'Idempotent 'Unsafe = 'Unsafe
-  Combine 'Unsafe 'Safe = 'Unsafe
-  Combine 'Unsafe 'Idempotent = 'Unsafe
-  Combine 'Unsafe 'Unsafe = 'Unsafe
-
--- Type family for maximum (least upper bound) in the grade lattice
-type family Max (i :: Grade) (j :: Grade) :: Grade where
-  Max 'Pure g = g
-  Max g 'Pure = g
-  Max 'Safe 'Safe = 'Safe
-  Max 'Safe g = g
-  Max g 'Safe = g
-  Max 'Idempotent 'Idempotent = 'Idempotent
-  Max 'Idempotent 'Unsafe = 'Unsafe
-  Max 'Unsafe 'Idempotent = 'Unsafe
-  Max 'Unsafe 'Unsafe = 'Unsafe
 
 -- Graded monad for effect tracking with single grade parameter
 newtype GradeApp (g :: Grade) a = GradeApp { runGradeApp :: IO a }
@@ -136,40 +130,36 @@ instance Functor (GradeApp g) where
 ireturn :: a -> GradeApp 'Pure a
 ireturn x = GradeApp (return x)
 
--- Graded bind: composition takes maximum grade
-ibind :: GradeApp g a -> (a -> GradeApp h b) -> GradeApp (Max g h) b
+-- Graded bind: composition uses Monoid operation (<>)
+ibind :: GradeApp g a -> (a -> GradeApp h b) -> GradeApp (g <> h) b
 ibind (GradeApp x) f = GradeApp (x >>= runGradeApp . f)
 
--- Parallel composition: combines effects using Max (least upper bound)
-iparallel :: GradeApp g a -> GradeApp h b -> GradeApp (Max g h) (a, b)
+-- Parallel composition: combines effects using Monoid operation
+iparallel :: GradeApp g a -> GradeApp h b -> GradeApp (g <> h) (a, b)
 iparallel (GradeApp x) (GradeApp y) = GradeApp ((,) <$> x <*> y)
 
 -- Smart constructors for effect introduction
 liftSafeIO :: IO a -> GradeApp 'Safe a
 liftSafeIO = GradeApp
 
--- Additional constructors for continuing with Safe effects
-safeContinue :: IO a -> GradeApp 'Safe a
-safeContinue = GradeApp
-
 -- ============================================================================
 -- IOREF OPERATIONS - State manipulation with explicit grades
 -- ============================================================================
 
--- Safe operation: Read state (no side effects, just observing)
--- Reading is Safe because it doesn't modify anything
-safeReadState :: NumberState -> GradeApp 'Safe Natural
-safeReadState state = safeContinue (readIORef state)
+-- Read state operation (safe by nature)
+-- Read-only operation, hence Safe grade
+readState :: NumberState -> GradeApp 'Safe Natural
+readState state = liftSafeIO (readIORef state)
 
--- Idempotent operation: Write state (repeatable with same result)
--- Writing state is semantically Idempotent - same input = same result
-idempotentWriteState :: NumberState -> Natural -> GradeApp 'Idempotent ()
-idempotentWriteState state value = GradeApp (writeIORef state value)
+-- Write state operation (idempotent by nature)
+-- Same input produces same result, hence Idempotent grade
+writeState :: NumberState -> Natural -> GradeApp 'Idempotent ()
+writeState state value = GradeApp (writeIORef state value)
 
--- Unsafe operation: Add to state (observable side effects)
--- Adding to existing state is Unsafe - not idempotent
-unsafeAddToState :: NumberState -> Natural -> GradeApp 'Unsafe ()
-unsafeAddToState state addValue = GradeApp $ do
+-- Add to state operation (unsafe by nature)
+-- Non-idempotent operation, hence Unsafe grade
+addToState :: NumberState -> Natural -> GradeApp 'Unsafe ()
+addToState state addValue = GradeApp $ do
     current <- readIORef state
     writeIORef state (current + addValue)
 
@@ -178,15 +168,6 @@ unsafeAddToState state addValue = GradeApp $ do
 pureValue :: a -> GradeApp 'Pure a  
 pureValue = ireturn
 
--- Specific weakening functions for grade elevation
-weakenToIdempotent :: GradeApp 'Safe a -> GradeApp 'Idempotent a
-weakenToIdempotent (GradeApp x) = GradeApp x
-
-weakenToUnsafe :: GradeApp 'Safe a -> GradeApp 'Unsafe a
-weakenToUnsafe (GradeApp x) = GradeApp x
-
-weakenIdempotentToUnsafe :: GradeApp 'Idempotent a -> GradeApp 'Unsafe a
-weakenIdempotentToUnsafe (GradeApp x) = GradeApp x
 
 -- Convenience constructors for different effect grades
 safeReturn :: a -> GradeApp 'Safe a
@@ -219,101 +200,102 @@ logRequest :: String -> String -> GradeApp 'Safe ()
 logRequest method path = liftSafeIO $ putStrLn $ "HTTP Log: " ++ method ++ " " ++ path
 
 -- Safe operation: read current number (no side effects)  
--- Demonstrates algebraic composition with Max grade
+-- Demonstrates algebraic composition with Monoid
 showNumber :: NumberState -> GradeApp 'Safe NumberResponse
 showNumber state = 
     logRequest "GET" "/show" `ibind` \_ ->
-    safeReadState state `ibind` \n ->
-    safeContinue (return (NumberResponse n))
+    readState state `ibind` \n ->
+    safeReturn (NumberResponse n)
 
 -- Idempotent operation: set number (repeatable with same result)
--- Demonstrates: Max(Safe, Idempotent) = Idempotent (natural semantic grading)
+-- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
 setNumber :: NumberState -> Natural -> GradeApp 'Idempotent NumberResponse
 setNumber state newValue = 
     logRequest "PUT" "/set" `ibind` \_ ->
-    idempotentWriteState state newValue `ibind` \_ ->
+    writeState state newValue `ibind` \_ ->
     idempotentReturn (NumberResponse newValue)
 
 -- Unsafe operation: add to number (observable side effects)
--- Demonstrates: Max(Safe, Unsafe) = Unsafe (natural semantic grading)
+-- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
 addNumber :: NumberState -> Natural -> GradeApp 'Unsafe NumberResponse  
 addNumber state addValue = 
     logRequest "POST" "/add" `ibind` \_ ->
-    unsafeAddToState state addValue `ibind` \_ ->
-    safeReadState state `ibind` \newValue ->
+    addToState state addValue `ibind` \_ ->
+    readState state `ibind` \newValue ->
     unsafeReturn (NumberResponse newValue)
 
--- Unsafe operation: generate random number (non-deterministic)
-unsafeRandomValue :: GradeApp 'Unsafe Natural
-unsafeRandomValue = GradeApp (fromIntegral <$> randomRIO (0, 1000 :: Int))
+-- Generate random number (unsafe by nature)
+-- Non-deterministic operation, hence Unsafe grade
+randomValue :: GradeApp 'Unsafe Natural
+randomValue = GradeApp (fromIntegral <$> randomRIO (0, 1000 :: Int))
 
 -- Unsafe operation: randomise number (non-deterministic side effects)
--- Demonstrates: Max(Safe, Unsafe, Idempotent) = Unsafe (natural semantic grading)
+-- Demonstrates: Safe <> Unsafe <> Idempotent = Unsafe (Monoid composition)
 randomiseNumber :: NumberState -> GradeApp 'Unsafe NumberResponse
 randomiseNumber state = 
     logRequest "POST" "/randomise" `ibind` \_ ->
     -- Random generation is inherently unsafe (non-deterministic)
-    unsafeRandomValue `ibind` \randomValue ->
-    idempotentWriteState state randomValue `ibind` \_ ->
-    unsafeReturn (NumberResponse randomValue)
+    randomValue `ibind` \randomVal ->
+    writeState state randomVal `ibind` \_ ->
+    unsafeReturn (NumberResponse randomVal)
 
 -- ============================================================================
 -- ALGEBRAIC COMPOSITION EXAMPLES - Educational Demonstrations
 -- ============================================================================
 
--- Example 1: Identity Law - Pure is the identity element
--- Mathematical: Max(Pure, g) = g
+-- Example 1: Identity Law - Pure is the identity element (mempty)
+-- Mathematical: Pure <> g = g (Monoid identity law)
 identityLawDemo :: NumberState -> GradeApp 'Safe Natural
 identityLawDemo state = 
-    -- Step 1: Pure computation (identity)  
+    -- Step 1: Pure computation (mempty)  
     pureValue () `ibind` \_ ->
-    -- Step 2: Max(Pure, Safe) = Safe (identity law applied)
+    -- Step 2: Pure <> Safe = Safe (Monoid identity law)
     liftSafeIO (readIORef state)
 
--- Example 2: Absorption Law - Higher grades absorb lower ones  
--- Mathematical: Max(Safe, Idempotent) = Idempotent (natural semantic grading)
+-- Example 2: Associativity Law - Monoid composition is associative
+-- Mathematical: Safe <> Idempotent = Idempotent (Monoid operation)
 absorptionLawDemo :: NumberState -> Natural -> GradeApp 'Idempotent ()
 absorptionLawDemo state value =
     -- Step 1: Safe effect (logging)
     logRequest "DEMO" "/absorption" `ibind` \_ ->
-    -- Step 2: Max(Safe, Idempotent) = Idempotent (natural composition)
-    idempotentWriteState state value `ibind` \_ ->
+    -- Step 2: Safe <> Idempotent = Idempotent (Monoid composition)
+    writeState state value `ibind` \_ ->
     -- Step 3: Already at Idempotent grade naturally
     idempotentReturn ()
 
 -- Example 3: Sequential Composition Chain
--- Shows natural semantic grading with Max operation
+-- Shows natural semantic grading with Monoid composition
 sequentialCompositionDemo :: NumberState -> Natural -> GradeApp 'Idempotent Natural
 sequentialCompositionDemo state newValue = 
     -- Step 1: Safe effect
     logRequest "SEQ" "/step1" `ibind` \_ ->
-    -- Step 2: Max(Safe, Safe) = Safe 
-    safeReadState state `ibind` \oldValue ->
-    -- Step 3: Max(Safe, Idempotent) = Idempotent (natural semantic grade)
-    idempotentWriteState state newValue `ibind` \_ ->
+    -- Step 2: Safe <> Safe = Safe (Monoid idempotence) 
+    readState state `ibind` \oldValue ->
+    -- Step 3: Safe <> Idempotent = Idempotent (Monoid composition)
+    writeState state newValue `ibind` \_ ->
     -- Step 4: Already at Idempotent grade
     idempotentReturn oldValue
 
--- Example 4: Parallel Composition with Max
--- Mathematical: Max(Safe, Safe) = Safe
+-- Example 4: Parallel Composition with Monoid
+-- Mathematical: Safe <> Safe = Safe (Monoid idempotence)
 parallelCompositionDemo :: NumberState -> GradeApp 'Safe ((), Natural)
 parallelCompositionDemo state = iparallel 
     -- Left side: Safe effect
     (logRequest "PARALLEL" "/left")
     -- Right side: Safe effect  
-    -- Result: Max(Safe, Safe) = Safe
+    -- Result: Safe <> Safe = Safe
     (liftSafeIO (readIORef state))
 
 -- Example 5: Grade Elevation Chain
--- Shows natural semantic grading leading to Unsafe
+-- Shows Monoid composition leading to maximum grade
 gradeElevationDemo :: NumberState -> Natural -> GradeApp 'Unsafe Natural
 gradeElevationDemo state addValue =
     -- Safe effect
     logRequest "ELEVATION" "/unsafe" `ibind` \_ ->
-    -- Max(Safe, Safe) = Safe  
-    safeReadState state `ibind` \current ->
-    -- Max(Safe, Unsafe) = Unsafe (natural semantic grade for addition)
-    unsafeAddToState state addValue `ibind` \_ ->
+    -- Safe <> Safe = Safe (Monoid idempotence)  
+    readState state `ibind` \current ->
+    -- Safe <> Unsafe = Unsafe (Monoid composition to maximum)
+    addToState state addValue `ibind` \_ ->
     -- Already at Unsafe grade
     unsafeReturn (current + addValue)
 
@@ -358,19 +340,21 @@ app state = serve api (server state)
 
 startApp :: IO ()
 startApp = do
-    putStrLn "=== Haskell Server with Indexed Monad Effects ==="
+    putStrLn "=== Haskell Server with Graded Monad Effects ==="
     putStrLn "Port: 8080"
     putStrLn ""
     putStrLn "Effect Grade Hierarchy: Pure < Safe < Idempotent < Unsafe"
-    putStrLn "API Routes:"  
-    putStrLn "  GET  /show → Pure → Safe       (read-only, no side effects)"
-    putStrLn "  PUT  /set  → Safe → Idempotent (repeatable, same result)" 
-    putStrLn "  POST /add  → Idempotent → Unsafe (observable side effects)"
+    putStrLn "API Routes with semantic grading:"  
+    putStrLn "  GET  /show     → Safe       (read-only operations)"
+    putStrLn "  PUT  /set      → Idempotent (repeatable with same result)" 
+    putStrLn "  POST /add      → Unsafe     (observable side effects)"
+    putStrLn "  POST /randomise → Unsafe     (non-deterministic effects)"
     putStrLn ""
-    putStrLn "The type system ensures:"
-    putStrLn "• No 'downgrading' of effect grades"
-    putStrLn "• HTTP methods match their semantic guarantees"
-    putStrLn "• Safe effects (logging) don't affect client state"
+    putStrLn "Monoid Grade composition with (<>) operator:"
+    putStrLn "• Pure <> g = g              (Pure is identity/mempty)"
+    putStrLn "• Safe <> Idempotent = Idempotent (automatic composition)"
+    putStrLn "• Operations have their natural semantic grades"
+    putStrLn "• No manual grade elevation needed"
     putStrLn ""
     
     -- Initialize number state to 0
