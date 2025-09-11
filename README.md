@@ -10,7 +10,7 @@ A Haskell web application demonstrating how to use graded monad effects to typec
 - **Data Types**: Natural numbers for semantic correctness
 - **Server**: Warp (high-performance web server)
 - **Frontend**: HTML5 with JavaScript validation
-- **Build Tool**: Cabal (with Hpack for package.yaml)
+- **Build Tool**: Cabal
 
 ## Features
 
@@ -42,10 +42,6 @@ cabal exec im-thinking-of-a-number-exe
 # Open browser
 open http://localhost:8080
 ```
-
-## Experimental Background
-
-This is an experiment in one-shot application construction. The developer (Chris Ford) didn't have a Haskell environment set up beforehand, demonstrating that Claude Code can bootstrap a complete development environment and application from scratch.
 
 ## Implementation Status
 
@@ -86,5 +82,5 @@ This implementation demonstrates **Grade as Monoid** for effect composition:
 src/Lib.hs           # Main implementation with graded monads
 static/index.html    # Frontend with validation
 app/Main.hs         # Application entry point
-package.yaml        # Dependencies and build configuration
+*.cabal             # Dependencies and build configuration
 ```
