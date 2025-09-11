@@ -132,13 +132,13 @@ readState state = Action (readIORef state)
 
 -- Write state operation (idempotent by nature)
 -- Same input produces same result, hence Idempotent grade
-writeState :: NumberState -> Natural -> Action 'Idempotent ()
-writeState state value = Action (writeIORef state value)
+writeState :: Natural -> NumberState -> Action 'Idempotent ()
+writeState value state = Action (writeIORef state value)
 
 -- Add to state operation (unsafe by nature)
 -- Non-idempotent operation, hence Unsafe grade
-addToState :: NumberState -> Natural -> Action 'Unsafe ()
-addToState state addValue = Action $ do
+addToState :: Natural -> NumberState -> Action 'Unsafe ()
+addToState addValue state = Action $ do
     current <- readIORef state
     writeIORef state (current + addValue)
 
@@ -195,7 +195,7 @@ showNumber state =
 setNumber :: NumberState -> Natural -> Action 'Idempotent NumberResponse
 setNumber state newValue = 
     logRequest "PUT" "/set" `gbind` \_ ->
-    writeState state newValue `gbind` \_ ->
+    writeState newValue state `gbind` \_ ->
     idempotent (NumberResponse newValue)
 
 -- Unsafe operation: add to number (observable side effects)
@@ -203,7 +203,7 @@ setNumber state newValue =
 addNumber :: NumberState -> Natural -> Action 'Unsafe NumberResponse  
 addNumber state addValue = 
     logRequest "POST" "/add" `gbind` \_ ->
-    addToState state addValue `gbind` \_ ->
+    addToState addValue state `gbind` \_ ->
     readState state `gbind` \newValue ->
     unsafe (NumberResponse newValue)
 
