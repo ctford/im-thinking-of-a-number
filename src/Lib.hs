@@ -8,12 +8,6 @@
 
 module Lib
     ( startApp
-    -- Export algebraic demo functions for testing
-    , identityLawDemo
-    , absorptionLawDemo  
-    , sequentialCompositionDemo
-    , parallelCompositionDemo
-    , gradeElevationDemo
     -- Export main HTTP operations for testing
     , showNumber
     , setNumber
@@ -225,65 +219,6 @@ randomiseNumber state =
     writeState state randomVal `gbind` \_ ->
     unsafe (NumberResponse randomVal)
 
--- ============================================================================
--- ALGEBRAIC COMPOSITION EXAMPLES - Educational Demonstrations
--- ============================================================================
-
--- Example 1: Identity Law - Pure is the identity element (mempty)
--- Mathematical: Pure <> g = g (Monoid identity law)
-identityLawDemo :: NumberState -> GradeApp 'Safe Natural
-identityLawDemo state = 
-    -- Step 1: Pure computation (mempty)  
-    greturn () `gbind` \_ ->
-    -- Step 2: Pure <> Safe = Safe (Monoid identity law)
-    liftSafeIO (readIORef state)
-
--- Example 2: Associativity Law - Monoid composition is associative
--- Mathematical: Safe <> Idempotent = Idempotent (Monoid operation)
-absorptionLawDemo :: NumberState -> Natural -> GradeApp 'Idempotent ()
-absorptionLawDemo state value =
-    -- Step 1: Safe effect (logging)
-    logRequest "DEMO" "/absorption" `gbind` \_ ->
-    -- Step 2: Safe <> Idempotent = Idempotent (Monoid composition)
-    writeState state value `gbind` \_ ->
-    -- Step 3: Already at Idempotent grade naturally
-    idempotent ()
-
--- Example 3: Sequential Composition Chain
--- Shows natural semantic grading with Monoid composition
-sequentialCompositionDemo :: NumberState -> Natural -> GradeApp 'Idempotent Natural
-sequentialCompositionDemo state newValue = 
-    -- Step 1: Safe effect
-    logRequest "SEQ" "/step1" `gbind` \_ ->
-    -- Step 2: Safe <> Safe = Safe (Monoid idempotence) 
-    readState state `gbind` \oldValue ->
-    -- Step 3: Safe <> Idempotent = Idempotent (Monoid composition)
-    writeState state newValue `gbind` \_ ->
-    -- Step 4: Already at Idempotent grade
-    idempotent oldValue
-
--- Example 4: Parallel Composition with Monoid
--- Mathematical: Safe <> Safe = Safe (Monoid idempotence)
-parallelCompositionDemo :: NumberState -> GradeApp 'Safe ((), Natural)
-parallelCompositionDemo state = gparallel 
-    -- Left side: Safe effect
-    (logRequest "PARALLEL" "/left")
-    -- Right side: Safe effect  
-    -- Result: Safe <> Safe = Safe
-    (liftSafeIO (readIORef state))
-
--- Example 5: Grade Elevation Chain
--- Shows Monoid composition leading to maximum grade
-gradeElevationDemo :: NumberState -> Natural -> GradeApp 'Unsafe Natural
-gradeElevationDemo state addValue =
-    -- Safe effect
-    logRequest "ELEVATION" "/unsafe" `gbind` \_ ->
-    -- Safe <> Safe = Safe (Monoid idempotence)  
-    readState state `gbind` \current ->
-    -- Safe <> Unsafe = Unsafe (Monoid composition to maximum)
-    addToState state addValue `gbind` \_ ->
-    -- Already at Unsafe grade
-    unsafe (current + addValue)
 
 -- Servant API definition with proper HTTP methods
 type API = "show" :> Get '[JSON] NumberResponse

@@ -66,6 +66,11 @@ cabal clean                    # Clean build artifacts
   - Removed Show, Eq, Ord deriving clauses (not used at runtime)
   - Removed Semigroup and Monoid instances (only type-level composition used)
   - Grade type only exists at type level, no runtime values needed
+- ✅ **Removed educational demonstration functions**
+  - Removed 5 demo functions that used improper HTTP verbs ("DEMO", "SEQ", etc.)
+  - Removed corresponding tests (14 → 9 test examples)
+  - Focus on proper HTTP semantics with GET, PUT, POST methods only
+  - Cleaner, production-focused codebase
 - ✅ **All tests passing with streamlined type system**
 
 ## Testing the Current Application

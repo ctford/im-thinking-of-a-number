@@ -8,48 +8,11 @@ import Numeric.Natural
 import Lib
 
 -- ============================================================================
--- ALGEBRAIC PROPERTY TESTS - Verify indexed monad composition laws
+-- HTTP OPERATIONS TESTS - Verify graded monad HTTP semantics
 -- ============================================================================
 
 main :: IO ()
 main = hspec $ do
-  describe "Grade Hierarchy Properties" $ do
-    it "verifies Pure is the identity element (left identity law)" $ do
-      -- Test: Max(Pure, Safe) = Safe
-      -- Create a computation with Pure and Safe effects
-      state <- newIORef (42 :: Natural)
-      result <- runGradeApp $ identityLawDemo state
-      result `shouldBe` 42
-      
-    it "demonstrates associativity law with Monoid composition" $ do  
-      -- Test: Safe <> Idempotent = Idempotent (Monoid composition)
-      -- Shows natural semantic grading
-      state <- newIORef (0 :: Natural)
-      runGradeApp $ absorptionLawDemo state 100
-      finalValue <- readIORef state
-      finalValue `shouldBe` 100
-      
-    it "verifies sequential composition with Monoid operations" $ do
-      -- Test: Monoid operations maintain grade monotonicity
-      state <- newIORef (50 :: Natural) 
-      oldValue <- runGradeApp $ sequentialCompositionDemo state 75
-      newValue <- readIORef state
-      oldValue `shouldBe` 50  -- Returns the old value
-      newValue `shouldBe` 75  -- State updated to new value
-      
-    it "demonstrates parallel composition uses Monoid operation" $ do
-      -- Test: Safe <> Safe = Safe for parallel operations
-      state <- newIORef (25 :: Natural)
-      ((), retrievedValue) <- runGradeApp $ parallelCompositionDemo state
-      retrievedValue `shouldBe` 25
-      
-    it "shows complete grade composition chain to Unsafe" $ do
-      -- Test: Monoid operations leading to Unsafe (maximum grade reached)
-      state <- newIORef (10 :: Natural)
-      result <- runGradeApp $ gradeElevationDemo state 5  
-      finalState <- readIORef state
-      result `shouldBe` 15      -- 10 + 5 
-      finalState `shouldBe` 15  -- State properly updated
 
   describe "HTTP Operations with Effect Grades" $ do
     it "verifies GET /show operation is Safe grade" $ do
