@@ -1,0 +1,79 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.38.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           im-thinking-of-a-number
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/ctford/im-thinking-of-a-number#readme>
+homepage:       https://github.com/ctford/im-thinking-of-a-number#readme
+bug-reports:    https://github.com/ctford/im-thinking-of-a-number/issues
+author:         Chris Ford
+maintainer:     example@example.com
+copyright:      2025 Chris Ford
+license:        BSD3
+build-type:     Simple
+extra-source-files:
+    README.md
+    CLAUDE.md
+
+source-repository head
+  type: git
+  location: https://github.com/ctford/im-thinking-of-a-number
+
+library
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_im_thinking_of_a_number
+  hs-source-dirs:
+      src
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , servant
+    , servant-server
+    , stm
+    , transformers
+    , warp
+  default-language: Haskell2010
+
+executable im-thinking-of-a-number-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_im_thinking_of_a_number
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , im-thinking-of-a-number
+    , servant
+    , servant-server
+    , stm
+    , transformers
+    , warp
+  default-language: Haskell2010
+
+test-suite im-thinking-of-a-number-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_im_thinking_of_a_number
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , base >=4.7 && <5
+    , hspec
+    , im-thinking-of-a-number
+    , servant
+    , servant-client
+    , servant-server
+    , stm
+    , transformers
+    , warp
+  default-language: Haskell2010
