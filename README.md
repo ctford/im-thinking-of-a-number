@@ -21,6 +21,7 @@ This application demonstrates graded monad effects through a number-thinking gam
 - **PUT /set**: `Action 'Idempotent` (repeatable with same result)  
 - **POST /add**: `Action 'Unsafe` (observable side effects)
 - **POST /randomise**: `Action 'Unsafe` (non-deterministic effects)
+- **DELETE /reset**: `Action 'Idempotent` (reset to zero, repeatable)
 
 ### Type System Features
 - **Monoid Composition**: Grade forms a join-semilattice with `<>` operator

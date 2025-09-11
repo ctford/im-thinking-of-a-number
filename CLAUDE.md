@@ -59,10 +59,11 @@ cabal clean                    # Clean build artifacts
   - `PUT /set` → `Idempotent` (repeatable)
   - `POST /add` → `Unsafe` (side effects)
   - `POST /randomise` → `Unsafe` (non-deterministic)
+  - `DELETE /reset` → `Idempotent` (reset to zero, repeatable)
 - **Grade hierarchy**: `Pure < Safe < Idempotent < Unsafe`
 - **Type safety**: Prevents unsafe grade downgrades at compile time
 - **Natural numbers**: Full validation chain (HTML + JavaScript + Haskell)
-- **Comprehensive test suite**: 9 tests verifying HTTP semantics and graded monad laws
+- **Comprehensive test suite**: 10 tests verifying HTTP semantics and graded monad laws
 
 ## API Testing
 
@@ -74,6 +75,7 @@ curl http://localhost:8080/show
 curl -X PUT -H "Content-Type: application/json" -d '{"value": 42}' http://localhost:8080/set
 curl -X POST -H "Content-Type: application/json" -d '{"value": 8}' http://localhost:8080/add  
 curl -X POST http://localhost:8080/randomise
+curl -X DELETE http://localhost:8080/reset
 
 # Error case (wrong HTTP method)
 curl -X POST http://localhost:8080/set  # Should return 405

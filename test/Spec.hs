@@ -54,6 +54,16 @@ main = hspec $ do
       finalValue `shouldSatisfy` (\x -> x >= 0 && x <= 1000)
       -- State should be updated  
       finalValue `shouldBe` result
+      
+    it "verifies DELETE /reset operation is Idempotent grade" $ do
+      -- Idempotent operations: repeatable with same result
+      state <- newIORef (456 :: Natural)
+      NumberResponse result1 <- runAction $ resetNumber state
+      NumberResponse result2 <- runAction $ resetNumber state
+      result1 `shouldBe` 0  -- Always resets to zero
+      result2 `shouldBe` 0  -- Same result when repeated
+      finalValue <- readIORef state
+      finalValue `shouldBe` 0
 
   describe "Natural Number Properties" $ do
     it "ensures all operations preserve Natural number constraints" $ do

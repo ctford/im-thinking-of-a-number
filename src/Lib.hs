@@ -13,6 +13,7 @@ module Lib
     , setNumber
     , addNumber
     , randomiseNumber
+    , resetNumber
     -- Export graded monad primitives for testing  
     , Action(..)
     , greturn
@@ -162,13 +163,13 @@ idempotent = Action . return
 unsafe :: a -> Action 'Unsafe a
 unsafe = Action . return
 
--- HTTP verb sum type for type-safe logging
+-- HTTP verb sum type for type-safe logging  
 data HttpVerb = HttpGET | HttpPUT | HttpPOST | HttpDELETE deriving Eq
 
 instance Show HttpVerb where
     show HttpGET    = "GET"
-    show HttpPUT    = "PUT" 
-    show HttpPOST   = "POST"
+    show HttpPUT    = "PUT"
+    show HttpPOST   = "POST" 
     show HttpDELETE = "DELETE"
 
 -- JSON data types
@@ -229,12 +230,21 @@ randomiseNumber state =
     readState state `gbind` \randomVal ->
     unsafe (NumberResponse randomVal)
 
+-- Idempotent operation: reset number to zero (repeatable with same result)
+-- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
+resetNumber :: NumberState -> Action 'Idempotent NumberResponse
+resetNumber state = 
+    logRequest HttpDELETE "/reset" Nothing `gbind` \_ ->
+    writeState 0 state `gbind` \_ ->
+    idempotent (NumberResponse 0)
+
 
 -- Servant API definition with proper HTTP methods
 type API = "show" :> Get '[JSON] NumberResponse
         :<|> "set" :> ReqBody '[JSON] NumberRequest :> Put '[JSON] NumberResponse  
         :<|> "add" :> ReqBody '[JSON] NumberRequest :> Post '[JSON] NumberResponse
         :<|> "randomise" :> Post '[JSON] NumberResponse
+        :<|> "reset" :> Delete '[JSON] NumberResponse
         :<|> Raw
 
 api :: Proxy API
@@ -246,6 +256,7 @@ server state = showHandler
           :<|> setHandler  
           :<|> addHandler
           :<|> randomiseHandler
+          :<|> resetHandler
           :<|> staticHandler
   where
     showHandler :: Handler NumberResponse
@@ -259,6 +270,9 @@ server state = showHandler
 
     randomiseHandler :: Handler NumberResponse
     randomiseHandler = liftIO $ runAction $ randomiseNumber state
+
+    resetHandler :: Handler NumberResponse
+    resetHandler = liftIO $ runAction $ resetNumber state
         
     staticHandler :: Server Raw
     staticHandler = serveDirectoryWith $ (defaultWebAppSettings "static")
@@ -275,10 +289,11 @@ startApp = do
     putStrLn "Port: 8080"
     putStrLn ""
     putStrLn "API Routes with semantic grading:"  
-    putStrLn "  GET  /show     → Safe       (read-only operations)"
-    putStrLn "  PUT  /set      → Idempotent (repeatable with same result)" 
-    putStrLn "  POST /add      → Unsafe     (observable side effects)"
-    putStrLn "  POST /randomise → Unsafe     (non-deterministic effects)"
+    putStrLn "  GET    /show     → Safe       (read-only operations)"
+    putStrLn "  PUT    /set      → Idempotent (repeatable with same result)" 
+    putStrLn "  POST   /add      → Unsafe     (observable side effects)"
+    putStrLn "  POST   /randomise → Unsafe     (non-deterministic effects)"
+    putStrLn "  DELETE /reset    → Idempotent (reset to zero, repeatable)"
     putStrLn ""
     
     -- Initialize number state to 0

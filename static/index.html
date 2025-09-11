@@ -72,6 +72,13 @@
         <div class="effect-label">POST /randomise (Unsafe)</div>
     </div>
     
+    <div class="input-group">
+        <label>Reset Number to Zero:</label><br>
+        <span style="display: inline-block; width: 166px; margin: 5px;"></span>
+        <button onclick="resetNumber()">Reset</button>
+        <div class="effect-label">DELETE /reset (Idempotent)</div>
+    </div>
+    
     <div id="result">Current number will be displayed here</div>
     <div class="effect-label">GET /show (Safe)</div>
     
@@ -147,6 +154,25 @@
         function randomizeNumber() {
             fetch('/randomise', {
                 method: 'POST',
+                headers: {'Content-Type': 'application/json'}
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('result').innerText = 'Current number: ' + data.value;
+            })
+            .catch(error => {
+                document.getElementById('result').innerText = 'Error: ' + error.message;
+            });
+        }
+        
+        function resetNumber() {
+            fetch('/reset', {
+                method: 'DELETE',
                 headers: {'Content-Type': 'application/json'}
             })
             .then(response => {
