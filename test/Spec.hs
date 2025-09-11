@@ -87,8 +87,8 @@ main = hspec $ do
       state <- newIORef (777 :: Natural)
       -- Pure computation followed by Safe operation  
       result <- runAction $ 
-        gpure () `gbind` \_ ->           -- Pure computation (mempty)
-        Action (readIORef state)         -- Pure <> Safe = Safe
+        Action (return ()) `gbind` \_ ->  -- Pure computation (mempty)  
+        Action (readIORef state)          -- Pure <> Safe = Safe
       result `shouldBe` 777
       
     it "proves associativity with Monoid operation" $ do  

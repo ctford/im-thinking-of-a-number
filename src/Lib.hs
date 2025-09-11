@@ -16,7 +16,6 @@ module Lib
     , resetNumber
     -- Export graded monad primitives for testing  
     , Action(..)
-    , gpure
     , gbind
     , logRequest
     -- Export data types for testing
@@ -143,9 +142,6 @@ randomiseState state = Action $ do
 
 
 -- Convenience constructors for different effect grades
-gpure :: a -> Action 'Pure a
-gpure = Action . return
-
 safe :: a -> Action 'Safe a
 safe = Action . return
 
