@@ -118,9 +118,6 @@ greturn x = GradeApp (return x)
 gbind :: GradeApp g a -> (a -> GradeApp h b) -> GradeApp (g <> h) b
 gbind (GradeApp x) f = GradeApp (x >>= runGradeApp . f)
 
--- Parallel composition: combines effects using Monoid operation
-gparallel :: GradeApp g a -> GradeApp h b -> GradeApp (g <> h) (a, b)
-gparallel (GradeApp x) (GradeApp y) = GradeApp ((,) <$> x <*> y)
 
 -- Smart constructors for effect introduction
 liftSafeIO :: IO a -> GradeApp 'Safe a

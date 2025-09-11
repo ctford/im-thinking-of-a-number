@@ -52,7 +52,7 @@ cabal clean                    # Clean build artifacts
 - ✅ **Renamed graded monad operations from "i" to "g" prefix**
   - `ireturn` → `greturn` (graded return)
   - `ibind` → `gbind` (graded bind)  
-  - `iparallel` → `gparallel` (graded parallel composition)
+  - Removed `gparallel` (unused, Applicative provides same functionality)
 - ✅ **Simplified type-level grade combination**
   - Removed redundant `Max` type family
   - Moved all grade combination logic directly into `<>` type family
