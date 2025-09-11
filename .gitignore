@@ -39,6 +39,7 @@ Thumbs.db
 
 # Server logs
 server.log
+error.log
 
 # Python (from earlier proof-of-concept)
 __pycache__/

@@ -21,20 +21,26 @@ cabal test                     # Run tests
 
 ### Run with Logging
 ```bash
-# Run server with both stdout and stderr to log file
+# Run server with separate stdout and stderr logging
+cabal run im-thinking-of-a-number-exe > server.log 2> error.log
+
+# Run server with both stdout and stderr to single log file
 cabal run im-thinking-of-a-number-exe > server.log 2>&1
 
-# Run server with unbuffered output for immediate logging
-stdbuf -oL -eL cabal run im-thinking-of-a-number-exe > server.log 2>&1
+# Run server with unbuffered output for immediate logging (macOS: install coreutils)
+# brew install coreutils
+gstdbuf -oL -eL cabal run im-thinking-of-a-number-exe > server.log 2> error.log
 
 # View logs in real-time while server runs
-tail -f server.log
+tail -f server.log      # HTTP request logs
+tail -f error.log       # Build output and error messages
 
-# View logs after server stops (logs may be buffered)
-cat server.log
+# View logs after server stops
+cat server.log          # HTTP request logs and server output
+cat error.log           # Build errors and system errors
 ```
 
-**Note**: This project uses Cabal for package management and building. HTTP request logs are written to stdout using `putStrLn` and may be buffered until the server stops or the buffer fills.
+**Note**: This project uses Cabal for package management and building. HTTP request logs are written to stdout, while build output and error messages go to stderr. Separating them makes debugging easier.
 
 ### Development
 ```bash
