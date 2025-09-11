@@ -5,52 +5,68 @@ A Haskell web application demonstrating how to use indexed monad effects to type
 ## Tech Stack
 
 - **Web Framework**: Servant (type-safe HTTP APIs)
-- **Effects System**: Custom indexed monad with Grade types (Pure, Safe, Idempotent, Unsafe)
+- **Effects System**: Indexed monad with algebraic composition via type families
+- **Type System**: Grade hierarchy (Pure < Safe < Idempotent < Unsafe) with type-safe transitions  
+- **Data Types**: Natural numbers for semantic correctness
 - **Server**: Warp (high-performance web server)
-- **Frontend**: Simple HTML with minimal JavaScript
-- **Build Tool**: Stack
+- **Frontend**: HTML5 with JavaScript validation
+- **Build Tool**: Cabal (with Hpack for package.yaml)
 
-## Requirements
+## Features
 
-This application implements a number-thinking game with three operations:
-- **Set**: Set the number (PUT /set - idempotent)
-- **Add**: Add to the number (POST /add - unsafe)
-- **Show**: Display the number (GET /show - safe)
+This application demonstrates indexed monad effects through a number-thinking game:
 
-The application uses an indexed monad system to track effect grades and typecheck HTTP method semantics.
+### HTTP Operations with Effect Grades
+- **GET /show**: `Pure → Safe` (read-only, logging effects)
+- **PUT /set**: `Pure → Safe → Idempotent` (repeatable operations)  
+- **POST /add**: `Pure → Safe → Unsafe` (observable side effects)
+
+### Type System Features
+- **Algebraic Composition**: Type families implement proper grade algebra
+- **Effect Tracking**: Indexed monads prevent unsafe grade downgrades
+- **HTTP Semantics**: Type system enforces correct HTTP method usage
+- **Natural Numbers**: Prevents negative values with validation chain
 
 ## Quick Start
 
-1. Install Stack: `curl -sSL https://get.haskellstack.org/ | sh`
-2. Build: `stack build`
-3. Run: `stack exec im-thinking-of-a-number-exe`
-4. Open browser to http://localhost:8080
+```bash
+# Install GHC and Cabal (macOS)
+brew install ghc cabal-install
+
+# Build and run
+cabal build
+cabal exec im-thinking-of-a-number-exe
+
+# Open browser
+open http://localhost:8080
+```
 
 ## Experimental Background
 
 This is an experiment in one-shot application construction. The developer (Chris Ford) didn't have a Haskell environment set up beforehand, demonstrating that Claude Code can bootstrap a complete development environment and application from scratch.
 
-## Current Status
+## Implementation Status
 
-✅ Git repository initialized
-✅ Haskell Stack/Cabal project structure created
-✅ Working HTTP server with all features implemented
-✅ HTML frontend with JavaScript
-✅ Complete API with proper HTTP methods (GET /show, PUT /set, POST /add)
-✅ HTTP method validation (405 responses for wrong methods)
-✅ Effect system simulation (logging HTTP requests as "Safe" effects)
+### Complete ✅
+- **Indexed Monad System**: Full algebraic composition with type families
+- **Grade Hierarchy**: Complete `Pure < Safe < Idempotent < Unsafe` with transitions
+- **HTTP API**: All three routes with proper method semantics
+- **Type Safety**: Compile-time prevention of grade downgrades  
+- **Natural Numbers**: Full validation chain (HTML + JS + Haskell)
+- **Frontend**: HTML5 interface with client-side validation
+- **Error Handling**: Proper HTTP status codes and JSON error responses
 
-## Current Implementation Status
+### Key Achievements
+- **Type-Level Programming**: Uses `Combine` and `Max` type families for algebraic composition
+- **Effect Tracking**: Each HTTP operation has correct grade transitions
+- **Semantic Correctness**: Natural numbers prevent invalid negative states
+- **Development Speed**: Complete implementation in ~4 hours from scratch
 
-### Python Proof of Concept ✅
-A complete working demonstration was implemented in Python to prove the concept while setting up the Haskell environment.
+## Code Structure
 
-### Haskell Implementation 🔄
-- ✅ Complete development environment setup (GHC, Cabal, Hpack)
-- ✅ Haskell project structure with all dependencies
-- ✅ HTML frontend served by Haskell static file server
-- ✅ Basic indexed monad type system foundation
-- 🔲 API routes with proper HTTP method semantics
-- 🔲 Complete effect grade hierarchy (Pure < Safe < Idempotent < Unsafe)
-
-The Haskell server is now serving the HTML frontend and ready for the effects system implementation.
+```
+src/Lib.hs           # Main implementation with indexed monads
+static/index.html    # Frontend with validation
+app/Main.hs         # Application entry point
+package.yaml        # Dependencies and build configuration
+```
