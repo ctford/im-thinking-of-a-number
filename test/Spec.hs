@@ -85,7 +85,7 @@ main = hspec $ do
       -- Monoid operation combines grades naturally
       state <- newIORef (555 :: Natural)
       runAction $ 
-        logRequest "TEST" "/associativity" `gbind` \_ ->  -- Safe effect
+        logRequest "TEST" "/associativity" Nothing `gbind` \_ ->  -- Safe effect
         Action (writeIORef state 888) `gbind` \_ ->      -- Safe <> Safe = Safe  
         Action (return ())                               -- Natural Safe grade
       finalValue <- readIORef state
