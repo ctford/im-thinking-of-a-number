@@ -21,8 +21,8 @@ module Lib
     , randomiseNumber
     -- Export graded monad primitives for testing  
     , GradeApp(..)
-    , ireturn
-    , ibind
+    , greturn
+    , gbind
     , liftSafeIO
     , logRequest
     -- Export IORef helper functions
@@ -85,13 +85,17 @@ instance Monoid Grade where
 -- Note: Data.Type.Ord.Max doesn't work directly with custom types like Grade,
 -- so we implement a minimal Max type family that mirrors the Ord instance
 type family Max (g :: Grade) (h :: Grade) :: Grade where
-    Max g g = g  -- idempotent: max(g, g) = g
-    Max 'Pure g = g  -- Pure is minimum
-    Max g 'Pure = g  -- Pure is minimum
-    Max 'Unsafe _ = 'Unsafe  -- Unsafe is maximum
-    Max _ 'Unsafe = 'Unsafe  -- Unsafe is maximum
-    Max 'Safe 'Idempotent = 'Idempotent  -- Safe < Idempotent
-    Max 'Idempotent 'Safe = 'Idempotent  -- Safe < Idempotent
+    Max 'Pure g = g
+    Max g 'Pure = g
+    Max 'Safe 'Safe = 'Safe
+    Max 'Safe 'Idempotent = 'Idempotent
+    Max 'Safe 'Unsafe = 'Unsafe
+    Max 'Idempotent 'Safe = 'Idempotent
+    Max 'Idempotent 'Idempotent = 'Idempotent
+    Max 'Idempotent 'Unsafe = 'Unsafe
+    Max 'Unsafe 'Safe = 'Unsafe
+    Max 'Unsafe 'Idempotent = 'Unsafe
+    Max 'Unsafe 'Unsafe = 'Unsafe
 
 -- Type-level Monoid operation using our Max function
 type family (g :: Grade) <> (h :: Grade) :: Grade where
@@ -130,16 +134,16 @@ instance Functor (GradeApp g) where
     fmap f (GradeApp x) = GradeApp (f <$> x)
 
 -- Graded monad operations with single grade parameter
-ireturn :: a -> GradeApp 'Pure a
-ireturn x = GradeApp (return x)
+greturn :: a -> GradeApp 'Pure a
+greturn x = GradeApp (return x)
 
 -- Graded bind: composition uses Monoid operation (<>)
-ibind :: GradeApp g a -> (a -> GradeApp h b) -> GradeApp (g <> h) b
-ibind (GradeApp x) f = GradeApp (x >>= runGradeApp . f)
+gbind :: GradeApp g a -> (a -> GradeApp h b) -> GradeApp (g <> h) b
+gbind (GradeApp x) f = GradeApp (x >>= runGradeApp . f)
 
 -- Parallel composition: combines effects using Monoid operation
-iparallel :: GradeApp g a -> GradeApp h b -> GradeApp (g <> h) (a, b)
-iparallel (GradeApp x) (GradeApp y) = GradeApp ((,) <$> x <*> y)
+gparallel :: GradeApp g a -> GradeApp h b -> GradeApp (g <> h) (a, b)
+gparallel (GradeApp x) (GradeApp y) = GradeApp ((,) <$> x <*> y)
 
 -- Smart constructors for effect introduction
 liftSafeIO :: IO a -> GradeApp 'Safe a
@@ -169,7 +173,7 @@ addToState state addValue = GradeApp $ do
 -- Pure operation: Create return value (no effects)
 -- Creating values is Pure - no observable effects
 pureValue :: a -> GradeApp 'Pure a  
-pureValue = ireturn
+pureValue = greturn
 
 
 -- Convenience constructors for different effect grades
@@ -206,25 +210,25 @@ logRequest method path = liftSafeIO $ putStrLn $ "- - [" ++ method ++ "] " ++ pa
 -- Demonstrates algebraic composition with Monoid
 showNumber :: NumberState -> GradeApp 'Safe NumberResponse
 showNumber state = 
-    logRequest "GET" "/show" `ibind` \_ ->
-    readState state `ibind` \n ->
+    logRequest "GET" "/show" `gbind` \_ ->
+    readState state `gbind` \n ->
     safe (NumberResponse n)
 
 -- Idempotent operation: set number (repeatable with same result)
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
 setNumber :: NumberState -> Natural -> GradeApp 'Idempotent NumberResponse
 setNumber state newValue = 
-    logRequest "PUT" "/set" `ibind` \_ ->
-    writeState state newValue `ibind` \_ ->
+    logRequest "PUT" "/set" `gbind` \_ ->
+    writeState state newValue `gbind` \_ ->
     idempotent (NumberResponse newValue)
 
 -- Unsafe operation: add to number (observable side effects)
 -- Demonstrates: Safe <> Unsafe = Unsafe (Monoid composition)
 addNumber :: NumberState -> Natural -> GradeApp 'Unsafe NumberResponse  
 addNumber state addValue = 
-    logRequest "POST" "/add" `ibind` \_ ->
-    addToState state addValue `ibind` \_ ->
-    readState state `ibind` \newValue ->
+    logRequest "POST" "/add" `gbind` \_ ->
+    addToState state addValue `gbind` \_ ->
+    readState state `gbind` \newValue ->
     unsafe (NumberResponse newValue)
 
 -- Generate random number (unsafe by nature)
@@ -236,10 +240,10 @@ randomValue = GradeApp (fromIntegral <$> randomRIO (0, 1000 :: Int))
 -- Demonstrates: Safe <> Unsafe <> Idempotent = Unsafe (Monoid composition)
 randomiseNumber :: NumberState -> GradeApp 'Unsafe NumberResponse
 randomiseNumber state = 
-    logRequest "POST" "/randomise" `ibind` \_ ->
+    logRequest "POST" "/randomise" `gbind` \_ ->
     -- Random generation is inherently unsafe (non-deterministic)
-    randomValue `ibind` \randomVal ->
-    writeState state randomVal `ibind` \_ ->
+    randomValue `gbind` \randomVal ->
+    writeState state randomVal `gbind` \_ ->
     unsafe (NumberResponse randomVal)
 
 -- ============================================================================
@@ -251,7 +255,7 @@ randomiseNumber state =
 identityLawDemo :: NumberState -> GradeApp 'Safe Natural
 identityLawDemo state = 
     -- Step 1: Pure computation (mempty)  
-    pureValue () `ibind` \_ ->
+    pureValue () `gbind` \_ ->
     -- Step 2: Pure <> Safe = Safe (Monoid identity law)
     liftSafeIO (readIORef state)
 
@@ -260,9 +264,9 @@ identityLawDemo state =
 absorptionLawDemo :: NumberState -> Natural -> GradeApp 'Idempotent ()
 absorptionLawDemo state value =
     -- Step 1: Safe effect (logging)
-    logRequest "DEMO" "/absorption" `ibind` \_ ->
+    logRequest "DEMO" "/absorption" `gbind` \_ ->
     -- Step 2: Safe <> Idempotent = Idempotent (Monoid composition)
-    writeState state value `ibind` \_ ->
+    writeState state value `gbind` \_ ->
     -- Step 3: Already at Idempotent grade naturally
     idempotent ()
 
@@ -271,18 +275,18 @@ absorptionLawDemo state value =
 sequentialCompositionDemo :: NumberState -> Natural -> GradeApp 'Idempotent Natural
 sequentialCompositionDemo state newValue = 
     -- Step 1: Safe effect
-    logRequest "SEQ" "/step1" `ibind` \_ ->
+    logRequest "SEQ" "/step1" `gbind` \_ ->
     -- Step 2: Safe <> Safe = Safe (Monoid idempotence) 
-    readState state `ibind` \oldValue ->
+    readState state `gbind` \oldValue ->
     -- Step 3: Safe <> Idempotent = Idempotent (Monoid composition)
-    writeState state newValue `ibind` \_ ->
+    writeState state newValue `gbind` \_ ->
     -- Step 4: Already at Idempotent grade
     idempotent oldValue
 
 -- Example 4: Parallel Composition with Monoid
 -- Mathematical: Safe <> Safe = Safe (Monoid idempotence)
 parallelCompositionDemo :: NumberState -> GradeApp 'Safe ((), Natural)
-parallelCompositionDemo state = iparallel 
+parallelCompositionDemo state = gparallel 
     -- Left side: Safe effect
     (logRequest "PARALLEL" "/left")
     -- Right side: Safe effect  
@@ -294,11 +298,11 @@ parallelCompositionDemo state = iparallel
 gradeElevationDemo :: NumberState -> Natural -> GradeApp 'Unsafe Natural
 gradeElevationDemo state addValue =
     -- Safe effect
-    logRequest "ELEVATION" "/unsafe" `ibind` \_ ->
+    logRequest "ELEVATION" "/unsafe" `gbind` \_ ->
     -- Safe <> Safe = Safe (Monoid idempotence)  
-    readState state `ibind` \current ->
+    readState state `gbind` \current ->
     -- Safe <> Unsafe = Unsafe (Monoid composition to maximum)
-    addToState state addValue `ibind` \_ ->
+    addToState state addValue `gbind` \_ ->
     -- Already at Unsafe grade
     unsafe (current + addValue)
 

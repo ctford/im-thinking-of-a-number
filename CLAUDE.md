@@ -42,11 +42,19 @@ cabal clean                    # Clean build artifacts
 - ✅ Haskell project structure (Cabal-based)
 - ✅ All dependencies resolved and building successfully 
 - ✅ HTML frontend served by Haskell static file server
-- ✅ **Grade as Monoid implementation with `<>` composition** 
+- ✅ **Graded monad implementation with proper "g" prefix naming**
 - ✅ API endpoints (/show, /set, /add, /randomise) with natural semantic grading
 - ✅ Complete grade lattice with automatic Monoid composition
 - ✅ Comprehensive test suite verifying Monoid laws
 - ✅ Simplified API: no manual grade elevation needed
+
+### Recent Changes ✅
+- ✅ **Renamed graded monad operations from "i" to "g" prefix**
+  - `ireturn` → `greturn` (graded return)
+  - `ibind` → `gbind` (graded bind)  
+  - `iparallel` → `gparallel` (graded parallel composition)
+- ✅ **Fixed type-level Max function for proper compilation**
+- ✅ **All tests passing with new naming convention**
 
 ## Testing the Current Application
 

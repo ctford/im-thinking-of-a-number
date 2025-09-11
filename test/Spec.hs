@@ -114,7 +114,7 @@ main = hspec $ do
       state <- newIORef (777 :: Natural)
       -- Pure computation followed by Safe operation  
       result <- runGradeApp $ 
-        ireturn () `ibind` \_ ->           -- Pure computation (mempty)
+        greturn () `gbind` \_ ->           -- Pure computation (mempty)
         liftSafeIO (readIORef state)       -- Pure <> Safe = Safe
       result `shouldBe` 777
       
@@ -122,8 +122,8 @@ main = hspec $ do
       -- Monoid operation combines grades naturally
       state <- newIORef (555 :: Natural)
       runGradeApp $ 
-        logRequest "TEST" "/associativity" `ibind` \_ ->  -- Safe effect
-        liftSafeIO (writeIORef state 888) `ibind` \_ ->    -- Safe <> Safe = Safe  
+        logRequest "TEST" "/associativity" `gbind` \_ ->  -- Safe effect
+        liftSafeIO (writeIORef state 888) `gbind` \_ ->    -- Safe <> Safe = Safe  
         liftSafeIO (return ())                               -- Natural Safe grade
       finalValue <- readIORef state
       finalValue `shouldBe` 888
@@ -135,7 +135,7 @@ main = hspec $ do
       -- Demonstrate natural grade composition:
       state <- newIORef (333 :: Natural)
       NumberResponse result <- runGradeApp $ 
-        liftSafeIO (readIORef state) `ibind` \value ->      -- Safe grade
+        liftSafeIO (readIORef state) `gbind` \value ->      -- Safe grade
         GradeApp (return (NumberResponse value))             -- Natural Unsafe grade
       result `shouldBe` 333
       
