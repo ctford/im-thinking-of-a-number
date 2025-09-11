@@ -130,12 +130,14 @@ gbind (Action x) f = Action (x >>= runAction . f)
 -- Read state operation (safe by nature)
 -- Read-only operation, hence Safe grade
 readState :: NumberState -> Action 'Safe Natural
-readState state = Action (readIORef state)
+readState state = Action $ do
+    readIORef state
 
 -- Write state operation (idempotent by nature)
 -- Same input produces same result, hence Idempotent grade
 writeState :: Natural -> NumberState -> Action 'Idempotent ()
-writeState value state = Action (writeIORef state value)
+writeState value state = Action $ do
+    writeIORef state value
 
 -- Add to state operation (unsafe by nature)
 -- Non-idempotent operation, hence Unsafe grade
