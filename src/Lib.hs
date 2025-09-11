@@ -173,7 +173,7 @@ logRequest :: HttpVerb -> String -> Maybe Natural -> Natural -> Action 'Safe ()
 logRequest verb path maybeRequestValue currentValue = Action $ do
     let requestStr = case maybeRequestValue of
           Nothing -> ""
-          Just v  -> " request=" ++ show v
+          Just v  -> " value=" ++ show v
     let currentStr = " current=" ++ show currentValue
     putStrLn $ "- - [" ++ show verb ++ "] " ++ path ++ " 200 -" ++ requestStr ++ currentStr
     hFlush stdout
