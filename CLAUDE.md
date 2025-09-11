@@ -15,15 +15,17 @@ im-thinking-of-a-number/
 
 ### Build and Run
 ```bash
-stack build                    # Build the project
-stack exec im-thinking-of-a-number-exe  # Run the server
-stack test                     # Run tests
+cabal build                    # Build the project (using system GHC)
+cabal run im-thinking-of-a-number-exe  # Run the server
+cabal test                     # Run tests
 ```
+
+**Note**: This project uses cabal instead of stack due to GHC installation issues with stack on this system. The system GHC works fine with cabal.
 
 ### Development
 ```bash
-stack ghci                     # Start REPL
-stack clean                    # Clean build artifacts
+cabal repl                     # Start REPL
+cabal clean                    # Clean build artifacts
 ```
 
 ## Current Implementation
@@ -36,13 +38,14 @@ stack clean                    # Clean build artifacts
 - Effect system simulation with HTTP request logging
 - Git repository with all files committed
 
-### Haskell Implementation (In Progress) ✅ Phase 1 Complete
-- ✅ Haskell project structure (Stack + Cabal + Hpack)
-- ✅ All dependencies resolved and building successfully
+### Haskell Implementation ✅ Complete - Graded Monad Version
+- ✅ Haskell project structure (Cabal-based)
+- ✅ All dependencies resolved and building successfully 
 - ✅ HTML frontend served by Haskell static file server
-- ✅ Basic indexed monad foundation with Grade types
-- 🔲 API endpoints (/show, /set, /add) with indexed monad effects
-- 🔲 Complete grade hierarchy and composition rules
+- ✅ **Graded monad implementation with single type parameter** 
+- ✅ API endpoints (/show, /set, /add, /randomise) with graded monad effects
+- ✅ Complete grade hierarchy with semantic operation grading
+- ✅ Comprehensive test suite verifying algebraic laws
 
 ## Testing the Current Application
 

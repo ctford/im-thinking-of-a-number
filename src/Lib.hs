@@ -19,8 +19,8 @@ module Lib
     , setNumber
     , addNumber
     , randomiseNumber
-    -- Export indexed monad primitives for testing  
-    , IxApp(..)
+    -- Export graded monad primitives for testing  
+    , GradeApp(..)
     , ireturn
     , ibind
     , liftSafeIO
@@ -30,7 +30,8 @@ module Lib
     , logRequest
     -- Export IORef helper functions
     , safeReadState
-    , safeWriteState
+    , idempotentWriteState
+    , unsafeAddToState
     , pureValue
     -- Export data types for testing
     , NumberResponse(..)
@@ -125,31 +126,31 @@ type family Max (i :: Grade) (j :: Grade) :: Grade where
   Max 'Unsafe 'Idempotent = 'Unsafe
   Max 'Unsafe 'Unsafe = 'Unsafe
 
--- Indexed monad for effect tracking with proper algebraic composition
-newtype IxApp (i :: Grade) (j :: Grade) a = IxApp { runIxApp :: IO a }
+-- Graded monad for effect tracking with single grade parameter
+newtype GradeApp (g :: Grade) a = GradeApp { runGradeApp :: IO a }
 
-instance Functor (IxApp i j) where
-    fmap f (IxApp x) = IxApp (f <$> x)
+instance Functor (GradeApp g) where
+    fmap f (GradeApp x) = GradeApp (f <$> x)
 
--- Indexed monad operations with algebraic composition
-ireturn :: a -> IxApp 'Pure 'Pure a
-ireturn x = IxApp (return x)
+-- Graded monad operations with single grade parameter
+ireturn :: a -> GradeApp 'Pure a
+ireturn x = GradeApp (return x)
 
--- Algebraic bind: composition follows the algebra
-ibind :: IxApp i j a -> (a -> IxApp j k b) -> IxApp i (Combine j k) b
-ibind (IxApp x) f = IxApp (x >>= runIxApp . f)
+-- Graded bind: composition takes maximum grade
+ibind :: GradeApp g a -> (a -> GradeApp h b) -> GradeApp (Max g h) b
+ibind (GradeApp x) f = GradeApp (x >>= runGradeApp . f)
 
 -- Parallel composition: combines effects using Max (least upper bound)
-iparallel :: IxApp 'Pure i a -> IxApp 'Pure j b -> IxApp 'Pure (Max i j) (a, b)
-iparallel (IxApp x) (IxApp y) = IxApp ((,) <$> x <*> y)
+iparallel :: GradeApp g a -> GradeApp h b -> GradeApp (Max g h) (a, b)
+iparallel (GradeApp x) (GradeApp y) = GradeApp ((,) <$> x <*> y)
 
 -- Smart constructors for effect introduction
-liftSafeIO :: IO a -> IxApp 'Pure 'Safe a
-liftSafeIO = IxApp
+liftSafeIO :: IO a -> GradeApp 'Safe a
+liftSafeIO = GradeApp
 
 -- Additional constructors for continuing with Safe effects
-safeContinue :: IO a -> IxApp 'Safe 'Safe a
-safeContinue = IxApp
+safeContinue :: IO a -> GradeApp 'Safe a
+safeContinue = GradeApp
 
 -- ============================================================================
 -- IOREF OPERATIONS - State manipulation with explicit grades
@@ -157,28 +158,45 @@ safeContinue = IxApp
 
 -- Safe operation: Read state (no side effects, just observing)
 -- Reading is Safe because it doesn't modify anything
-safeReadState :: NumberState -> IxApp 'Safe 'Safe Natural
+safeReadState :: NumberState -> GradeApp 'Safe Natural
 safeReadState state = safeContinue (readIORef state)
 
--- Safe operation: Write state (modifies state but in controlled way)  
--- Writing is Safe when used in proper grade context (elevated later)
-safeWriteState :: NumberState -> Natural -> IxApp 'Safe 'Safe ()
-safeWriteState state value = safeContinue (writeIORef state value)
+-- Idempotent operation: Write state (repeatable with same result)
+-- Writing state is semantically Idempotent - same input = same result
+idempotentWriteState :: NumberState -> Natural -> GradeApp 'Idempotent ()
+idempotentWriteState state value = GradeApp (writeIORef state value)
+
+-- Unsafe operation: Add to state (observable side effects)
+-- Adding to existing state is Unsafe - not idempotent
+unsafeAddToState :: NumberState -> Natural -> GradeApp 'Unsafe ()
+unsafeAddToState state addValue = GradeApp $ do
+    current <- readIORef state
+    writeIORef state (current + addValue)
 
 -- Pure operation: Create return value (no effects)
 -- Creating values is Pure - no observable effects
-pureValue :: a -> IxApp 'Pure 'Pure a  
+pureValue :: a -> GradeApp 'Pure a  
 pureValue = ireturn
 
--- Specific weakening functions for the transitions we need
-weakenToIdempotent :: IxApp 'Safe 'Safe a -> IxApp 'Safe 'Idempotent a
-weakenToIdempotent (IxApp x) = IxApp x
+-- Specific weakening functions for grade elevation
+weakenToIdempotent :: GradeApp 'Safe a -> GradeApp 'Idempotent a
+weakenToIdempotent (GradeApp x) = GradeApp x
 
-weakenToUnsafe :: IxApp 'Safe 'Safe a -> IxApp 'Safe 'Unsafe a
-weakenToUnsafe (IxApp x) = IxApp x
+weakenToUnsafe :: GradeApp 'Safe a -> GradeApp 'Unsafe a
+weakenToUnsafe (GradeApp x) = GradeApp x
 
-weakenIdempotentToUnsafe :: IxApp 'Safe 'Idempotent a -> IxApp 'Safe 'Unsafe a
-weakenIdempotentToUnsafe (IxApp x) = IxApp x
+weakenIdempotentToUnsafe :: GradeApp 'Idempotent a -> GradeApp 'Unsafe a
+weakenIdempotentToUnsafe (GradeApp x) = GradeApp x
+
+-- Convenience constructors for different effect grades
+safeReturn :: a -> GradeApp 'Safe a
+safeReturn = GradeApp . return
+
+idempotentReturn :: a -> GradeApp 'Idempotent a
+idempotentReturn = GradeApp . return
+
+unsafeReturn :: a -> GradeApp 'Unsafe a
+unsafeReturn = GradeApp . return
 
 -- Strengthen is impossible (no downgrading) - this would be a type error
 
@@ -197,104 +215,107 @@ type NumberState = IORef Natural
 
 -- Safe effect: HTTP request logging (non-observable to client)
 -- Pure → Safe: introducing a safe effect
-logRequest :: String -> String -> IxApp 'Pure 'Safe ()
+logRequest :: String -> String -> GradeApp 'Safe ()
 logRequest method path = liftSafeIO $ putStrLn $ "HTTP Log: " ++ method ++ " " ++ path
 
 -- Safe operation: read current number (no side effects)  
--- Demonstrates algebraic composition: Pure + Safe = Safe
-showNumber :: NumberState -> IxApp 'Pure 'Safe NumberResponse
+-- Demonstrates algebraic composition with Max grade
+showNumber :: NumberState -> GradeApp 'Safe NumberResponse
 showNumber state = 
     logRequest "GET" "/show" `ibind` \_ ->
     safeReadState state `ibind` \n ->
     safeContinue (return (NumberResponse n))
 
 -- Idempotent operation: set number (repeatable with same result)
--- Demonstrates: Safe + Safe + Safe = Safe, then Safe → Idempotent  
-setNumber :: NumberState -> Natural -> IxApp 'Pure 'Idempotent NumberResponse
+-- Demonstrates: Max(Safe, Idempotent) = Idempotent (natural semantic grading)
+setNumber :: NumberState -> Natural -> GradeApp 'Idempotent NumberResponse
 setNumber state newValue = 
     logRequest "PUT" "/set" `ibind` \_ ->
-    safeWriteState state newValue `ibind` \_ ->
-    weakenToIdempotent (safeContinue (return (NumberResponse newValue)))
+    idempotentWriteState state newValue `ibind` \_ ->
+    idempotentReturn (NumberResponse newValue)
 
 -- Unsafe operation: add to number (observable side effects)
--- Demonstrates: Safe + Safe + Safe = Safe, then Safe → Unsafe
-addNumber :: NumberState -> Natural -> IxApp 'Pure 'Unsafe NumberResponse  
+-- Demonstrates: Max(Safe, Unsafe) = Unsafe (natural semantic grading)
+addNumber :: NumberState -> Natural -> GradeApp 'Unsafe NumberResponse  
 addNumber state addValue = 
     logRequest "POST" "/add" `ibind` \_ ->
-    safeReadState state `ibind` \current ->
-    let newValue = current + addValue in
-    safeWriteState state newValue `ibind` \_ ->
-    weakenToUnsafe (safeContinue (return (NumberResponse newValue)))
+    unsafeAddToState state addValue `ibind` \_ ->
+    safeReadState state `ibind` \newValue ->
+    unsafeReturn (NumberResponse newValue)
+
+-- Unsafe operation: generate random number (non-deterministic)
+unsafeRandomValue :: GradeApp 'Unsafe Natural
+unsafeRandomValue = GradeApp (fromIntegral <$> randomRIO (0, 1000 :: Int))
 
 -- Unsafe operation: randomise number (non-deterministic side effects)
--- Demonstrates: Safe + Unsafe = Unsafe (randomness makes it unsafe)
-randomiseNumber :: NumberState -> IxApp 'Pure 'Unsafe NumberResponse
+-- Demonstrates: Max(Safe, Unsafe, Idempotent) = Unsafe (natural semantic grading)
+randomiseNumber :: NumberState -> GradeApp 'Unsafe NumberResponse
 randomiseNumber state = 
     logRequest "POST" "/randomise" `ibind` \_ ->
     -- Random generation is inherently unsafe (non-deterministic)
-    safeContinue (fromIntegral <$> randomRIO (0, 1000 :: Int)) `ibind` \randomValue ->
-    safeWriteState state randomValue `ibind` \_ ->
-    weakenToUnsafe (safeContinue (return (NumberResponse randomValue)))
+    unsafeRandomValue `ibind` \randomValue ->
+    idempotentWriteState state randomValue `ibind` \_ ->
+    unsafeReturn (NumberResponse randomValue)
 
 -- ============================================================================
 -- ALGEBRAIC COMPOSITION EXAMPLES - Educational Demonstrations
 -- ============================================================================
 
 -- Example 1: Identity Law - Pure is the identity element
--- Mathematical: Pure ⊕ g = g
-identityLawDemo :: NumberState -> IxApp 'Pure 'Safe Natural
+-- Mathematical: Max(Pure, g) = g
+identityLawDemo :: NumberState -> GradeApp 'Safe Natural
 identityLawDemo state = 
-    -- Step 1: Pure → Pure (identity)  
+    -- Step 1: Pure computation (identity)  
     pureValue () `ibind` \_ ->
-    -- Step 2: Pure ⊕ Safe = Safe (identity law applied)
+    -- Step 2: Max(Pure, Safe) = Safe (identity law applied)
     liftSafeIO (readIORef state)
 
 -- Example 2: Absorption Law - Higher grades absorb lower ones  
--- Mathematical: Safe ⊕ Idempotent = Idempotent
-absorptionLawDemo :: NumberState -> Natural -> IxApp 'Pure 'Idempotent ()
+-- Mathematical: Max(Safe, Idempotent) = Idempotent (natural semantic grading)
+absorptionLawDemo :: NumberState -> Natural -> GradeApp 'Idempotent ()
 absorptionLawDemo state value =
-    -- Step 1: Pure → Safe (logging)
+    -- Step 1: Safe effect (logging)
     logRequest "DEMO" "/absorption" `ibind` \_ ->
-    -- Step 2: Safe ⊕ Safe = Safe (same grade composition)
-    safeWriteState state value `ibind` \_ ->
-    -- Step 3: Safe → Idempotent (weakening/absorption)
-    weakenToIdempotent (safeContinue (return ()))
+    -- Step 2: Max(Safe, Idempotent) = Idempotent (natural composition)
+    idempotentWriteState state value `ibind` \_ ->
+    -- Step 3: Already at Idempotent grade naturally
+    idempotentReturn ()
 
 -- Example 3: Sequential Composition Chain
--- Shows step-by-step grade elevation: Pure → Safe → Safe → Idempotent
-sequentialCompositionDemo :: NumberState -> Natural -> IxApp 'Pure 'Idempotent Natural
+-- Shows natural semantic grading with Max operation
+sequentialCompositionDemo :: NumberState -> Natural -> GradeApp 'Idempotent Natural
 sequentialCompositionDemo state newValue = 
-    -- Step 1: Pure → Safe (Combine 'Pure 'Safe = 'Safe)
+    -- Step 1: Safe effect
     logRequest "SEQ" "/step1" `ibind` \_ ->
-    -- Step 2: Safe → Safe (Combine 'Safe 'Safe = 'Safe) 
+    -- Step 2: Max(Safe, Safe) = Safe 
     safeReadState state `ibind` \oldValue ->
-    -- Step 3: Safe → Safe (still Safe grade)
-    safeWriteState state newValue `ibind` \_ ->
-    -- Step 4: Safe → Idempotent (grade elevation)
-    weakenToIdempotent (safeContinue (return oldValue))
+    -- Step 3: Max(Safe, Idempotent) = Idempotent (natural semantic grade)
+    idempotentWriteState state newValue `ibind` \_ ->
+    -- Step 4: Already at Idempotent grade
+    idempotentReturn oldValue
 
 -- Example 4: Parallel Composition with Max
 -- Mathematical: Max(Safe, Safe) = Safe
-parallelCompositionDemo :: NumberState -> IxApp 'Pure 'Safe ((), Natural)
+parallelCompositionDemo :: NumberState -> GradeApp 'Safe ((), Natural)
 parallelCompositionDemo state = iparallel 
-    -- Left side: Pure → Safe
+    -- Left side: Safe effect
     (logRequest "PARALLEL" "/left")
-    -- Right side: Pure → Safe  
-    -- Result: Pure → Max(Safe, Safe) = Pure → Safe
+    -- Right side: Safe effect  
+    -- Result: Max(Safe, Safe) = Safe
     (liftSafeIO (readIORef state))
 
 -- Example 5: Grade Elevation Chain
--- Shows how grades can only go "up" the hierarchy
-gradeElevationDemo :: NumberState -> Natural -> IxApp 'Pure 'Unsafe Natural
+-- Shows natural semantic grading leading to Unsafe
+gradeElevationDemo :: NumberState -> Natural -> GradeApp 'Unsafe Natural
 gradeElevationDemo state addValue =
-    -- Pure → Safe
+    -- Safe effect
     logRequest "ELEVATION" "/unsafe" `ibind` \_ ->
-    -- Safe → Safe  
-    safeContinue (readIORef state) `ibind` \current ->
-    -- Safe → Safe
-    safeContinue (writeIORef state (current + addValue)) `ibind` \_ ->
-    -- Safe → Unsafe (final elevation to highest grade)
-    weakenToUnsafe (safeContinue (return (current + addValue)))
+    -- Max(Safe, Safe) = Safe  
+    safeReadState state `ibind` \current ->
+    -- Max(Safe, Unsafe) = Unsafe (natural semantic grade for addition)
+    unsafeAddToState state addValue `ibind` \_ ->
+    -- Already at Unsafe grade
+    unsafeReturn (current + addValue)
 
 -- Servant API definition with proper HTTP methods
 type API = "show" :> Get '[JSON] NumberResponse
@@ -315,16 +336,16 @@ server state = showHandler
           :<|> staticHandler
   where
     showHandler :: Handler NumberResponse
-    showHandler = liftIO $ runIxApp $ showNumber state
+    showHandler = liftIO $ runGradeApp $ showNumber state
     
     setHandler :: NumberRequest -> Handler NumberResponse  
-    setHandler (NumberRequest n) = liftIO $ runIxApp $ setNumber state n
+    setHandler (NumberRequest n) = liftIO $ runGradeApp $ setNumber state n
         
     addHandler :: NumberRequest -> Handler NumberResponse
-    addHandler (NumberRequest n) = liftIO $ runIxApp $ addNumber state n
+    addHandler (NumberRequest n) = liftIO $ runGradeApp $ addNumber state n
 
     randomiseHandler :: Handler NumberResponse
-    randomiseHandler = liftIO $ runIxApp $ randomiseNumber state
+    randomiseHandler = liftIO $ runGradeApp $ randomiseNumber state
         
     staticHandler :: Server Raw
     staticHandler = serveDirectoryWith $ (defaultWebAppSettings "static")
