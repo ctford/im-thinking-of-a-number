@@ -53,8 +53,11 @@ cabal clean                    # Clean build artifacts
   - `ireturn` → `greturn` (graded return)
   - `ibind` → `gbind` (graded bind)  
   - `iparallel` → `gparallel` (graded parallel composition)
-- ✅ **Fixed type-level Max function for proper compilation**
-- ✅ **All tests passing with new naming convention**
+- ✅ **Simplified type-level grade combination**
+  - Removed redundant `Max` type family
+  - Moved all grade combination logic directly into `<>` type family
+  - Eliminated unnecessary indirection layer
+- ✅ **All tests passing with streamlined type system**
 
 ## Testing the Current Application
 

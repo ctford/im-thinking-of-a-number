@@ -80,26 +80,20 @@ instance Semigroup Grade where
 instance Monoid Grade where
     mempty = Pure  -- Pure is the identity element (⊥ in the lattice)
 
--- Type-level max function mirroring the runtime max operation
+-- Type-level Monoid operation implementing grade combination
 -- Uses the same ordering as the Ord instance: Pure < Safe < Idempotent < Unsafe
--- Note: Data.Type.Ord.Max doesn't work directly with custom types like Grade,
--- so we implement a minimal Max type family that mirrors the Ord instance
-type family Max (g :: Grade) (h :: Grade) :: Grade where
-    Max 'Pure g = g
-    Max g 'Pure = g
-    Max 'Safe 'Safe = 'Safe
-    Max 'Safe 'Idempotent = 'Idempotent
-    Max 'Safe 'Unsafe = 'Unsafe
-    Max 'Idempotent 'Safe = 'Idempotent
-    Max 'Idempotent 'Idempotent = 'Idempotent
-    Max 'Idempotent 'Unsafe = 'Unsafe
-    Max 'Unsafe 'Safe = 'Unsafe
-    Max 'Unsafe 'Idempotent = 'Unsafe
-    Max 'Unsafe 'Unsafe = 'Unsafe
-
--- Type-level Monoid operation using our Max function
 type family (g :: Grade) <> (h :: Grade) :: Grade where
-    g <> h = Max g h
+    'Pure <> g = g
+    g <> 'Pure = g
+    'Safe <> 'Safe = 'Safe
+    'Safe <> 'Idempotent = 'Idempotent
+    'Safe <> 'Unsafe = 'Unsafe
+    'Idempotent <> 'Safe = 'Idempotent
+    'Idempotent <> 'Idempotent = 'Idempotent
+    'Idempotent <> 'Unsafe = 'Unsafe
+    'Unsafe <> 'Safe = 'Unsafe
+    'Unsafe <> 'Idempotent = 'Unsafe
+    'Unsafe <> 'Unsafe = 'Unsafe
 
 -- ============================================================================
 -- MONOID COMPOSITION - Grade forms a join-semilattice
