@@ -83,17 +83,13 @@ instance Monoid Grade where
 -- Type-level Monoid operation implementing grade combination
 -- Uses the same ordering as the Ord instance: Pure < Safe < Idempotent < Unsafe
 type family (g :: Grade) <> (h :: Grade) :: Grade where
-    'Pure <> g = g
-    g <> 'Pure = g
-    'Safe <> 'Safe = 'Safe
-    'Safe <> 'Idempotent = 'Idempotent
-    'Safe <> 'Unsafe = 'Unsafe
-    'Idempotent <> 'Safe = 'Idempotent
-    'Idempotent <> 'Idempotent = 'Idempotent
-    'Idempotent <> 'Unsafe = 'Unsafe
-    'Unsafe <> 'Safe = 'Unsafe
-    'Unsafe <> 'Idempotent = 'Unsafe
-    'Unsafe <> 'Unsafe = 'Unsafe
+    'Pure <> g = g                    -- Pure is identity (left)
+    g <> 'Pure = g                    -- Pure is identity (right)
+    g <> g = g                        -- Idempotent law: g <> g = g
+    'Unsafe <> _ = 'Unsafe            -- Unsafe is absorbing element
+    _ <> 'Unsafe = 'Unsafe            -- Unsafe is absorbing element
+    'Idempotent <> 'Safe = 'Idempotent     -- Remaining explicit case
+    'Safe <> 'Idempotent = 'Idempotent     -- Remaining explicit case
 
 -- ============================================================================
 -- MONOID COMPOSITION - Grade forms a join-semilattice

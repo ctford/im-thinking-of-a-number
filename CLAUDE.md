@@ -56,6 +56,7 @@ cabal clean                    # Clean build artifacts
 - ✅ **Simplified type-level grade combination**
   - Removed redundant `Max` type family
   - Moved all grade combination logic directly into `<>` type family
+  - Used wildcards to reduce from 11 cases to 7 cases
   - Eliminated unnecessary indirection layer
 - ✅ **All tests passing with streamlined type system**
 
