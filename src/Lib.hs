@@ -29,7 +29,6 @@ module Lib
     , readState
     , writeState
     , addToState
-    , pureValue
     -- Export data types for testing
     , NumberResponse(..)
     , NumberState
@@ -160,10 +159,6 @@ addToState state addValue = GradeApp $ do
     current <- readIORef state
     writeIORef state (current + addValue)
 
--- Pure operation: Create return value (no effects)
--- Creating values is Pure - no observable effects
-pureValue :: a -> GradeApp 'Pure a  
-pureValue = greturn
 
 
 -- Convenience constructors for different effect grades
@@ -245,7 +240,7 @@ randomiseNumber state =
 identityLawDemo :: NumberState -> GradeApp 'Safe Natural
 identityLawDemo state = 
     -- Step 1: Pure computation (mempty)  
-    pureValue () `gbind` \_ ->
+    greturn () `gbind` \_ ->
     -- Step 2: Pure <> Safe = Safe (Monoid identity law)
     liftSafeIO (readIORef state)
 

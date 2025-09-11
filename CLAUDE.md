@@ -58,6 +58,10 @@ cabal clean                    # Clean build artifacts
   - Moved all grade combination logic directly into `<>` type family
   - Used wildcards to reduce from 11 cases to 7 cases
   - Eliminated unnecessary indirection layer
+- ✅ **Removed redundant pureValue function**
+  - Eliminated `pureValue` alias that was just `greturn`
+  - Use `greturn` directly for pure operations
+  - Cleaner API with standard graded monad terminology
 - ✅ **All tests passing with streamlined type system**
 
 ## Testing the Current Application
