@@ -8,6 +8,33 @@
 
 module Lib
     ( startApp
+    -- Export algebraic demo functions for testing
+    , identityLawDemo
+    , absorptionLawDemo  
+    , sequentialCompositionDemo
+    , parallelCompositionDemo
+    , gradeElevationDemo
+    -- Export main HTTP operations for testing
+    , showNumber
+    , setNumber
+    , addNumber
+    , randomiseNumber
+    -- Export indexed monad primitives for testing  
+    , IxApp(..)
+    , ireturn
+    , ibind
+    , liftSafeIO
+    , safeContinue
+    , weakenToIdempotent
+    , weakenToUnsafe
+    , logRequest
+    -- Export IORef helper functions
+    , safeReadState
+    , safeWriteState
+    , pureValue
+    -- Export data types for testing
+    , NumberResponse(..)
+    , NumberState
     ) where
 
 import Network.Wai
@@ -124,6 +151,25 @@ liftSafeIO = IxApp
 safeContinue :: IO a -> IxApp 'Safe 'Safe a
 safeContinue = IxApp
 
+-- ============================================================================
+-- IOREF OPERATIONS - State manipulation with explicit grades
+-- ============================================================================
+
+-- Safe operation: Read state (no side effects, just observing)
+-- Reading is Safe because it doesn't modify anything
+safeReadState :: NumberState -> IxApp 'Safe 'Safe Natural
+safeReadState state = safeContinue (readIORef state)
+
+-- Safe operation: Write state (modifies state but in controlled way)  
+-- Writing is Safe when used in proper grade context (elevated later)
+safeWriteState :: NumberState -> Natural -> IxApp 'Safe 'Safe ()
+safeWriteState state value = safeContinue (writeIORef state value)
+
+-- Pure operation: Create return value (no effects)
+-- Creating values is Pure - no observable effects
+pureValue :: a -> IxApp 'Pure 'Pure a  
+pureValue = ireturn
+
 -- Specific weakening functions for the transitions we need
 weakenToIdempotent :: IxApp 'Safe 'Safe a -> IxApp 'Safe 'Idempotent a
 weakenToIdempotent (IxApp x) = IxApp x
@@ -159,7 +205,7 @@ logRequest method path = liftSafeIO $ putStrLn $ "HTTP Log: " ++ method ++ " " +
 showNumber :: NumberState -> IxApp 'Pure 'Safe NumberResponse
 showNumber state = 
     logRequest "GET" "/show" `ibind` \_ ->
-    safeContinue (readIORef state) `ibind` \n ->
+    safeReadState state `ibind` \n ->
     safeContinue (return (NumberResponse n))
 
 -- Idempotent operation: set number (repeatable with same result)
@@ -167,7 +213,7 @@ showNumber state =
 setNumber :: NumberState -> Natural -> IxApp 'Pure 'Idempotent NumberResponse
 setNumber state newValue = 
     logRequest "PUT" "/set" `ibind` \_ ->
-    safeContinue (writeIORef state newValue) `ibind` \_ ->
+    safeWriteState state newValue `ibind` \_ ->
     weakenToIdempotent (safeContinue (return (NumberResponse newValue)))
 
 -- Unsafe operation: add to number (observable side effects)
@@ -175,9 +221,9 @@ setNumber state newValue =
 addNumber :: NumberState -> Natural -> IxApp 'Pure 'Unsafe NumberResponse  
 addNumber state addValue = 
     logRequest "POST" "/add" `ibind` \_ ->
-    safeContinue (readIORef state) `ibind` \current ->
+    safeReadState state `ibind` \current ->
     let newValue = current + addValue in
-    safeContinue (writeIORef state newValue) `ibind` \_ ->
+    safeWriteState state newValue `ibind` \_ ->
     weakenToUnsafe (safeContinue (return (NumberResponse newValue)))
 
 -- Unsafe operation: randomise number (non-deterministic side effects)
@@ -187,7 +233,7 @@ randomiseNumber state =
     logRequest "POST" "/randomise" `ibind` \_ ->
     -- Random generation is inherently unsafe (non-deterministic)
     safeContinue (fromIntegral <$> randomRIO (0, 1000 :: Int)) `ibind` \randomValue ->
-    safeContinue (writeIORef state randomValue) `ibind` \_ ->
+    safeWriteState state randomValue `ibind` \_ ->
     weakenToUnsafe (safeContinue (return (NumberResponse randomValue)))
 
 -- ============================================================================
@@ -199,7 +245,7 @@ randomiseNumber state =
 identityLawDemo :: NumberState -> IxApp 'Pure 'Safe Natural
 identityLawDemo state = 
     -- Step 1: Pure → Pure (identity)  
-    ireturn () `ibind` \_ ->
+    pureValue () `ibind` \_ ->
     -- Step 2: Pure ⊕ Safe = Safe (identity law applied)
     liftSafeIO (readIORef state)
 
@@ -210,7 +256,7 @@ absorptionLawDemo state value =
     -- Step 1: Pure → Safe (logging)
     logRequest "DEMO" "/absorption" `ibind` \_ ->
     -- Step 2: Safe ⊕ Safe = Safe (same grade composition)
-    safeContinue (writeIORef state value) `ibind` \_ ->
+    safeWriteState state value `ibind` \_ ->
     -- Step 3: Safe → Idempotent (weakening/absorption)
     weakenToIdempotent (safeContinue (return ()))
 
@@ -221,9 +267,9 @@ sequentialCompositionDemo state newValue =
     -- Step 1: Pure → Safe (Combine 'Pure 'Safe = 'Safe)
     logRequest "SEQ" "/step1" `ibind` \_ ->
     -- Step 2: Safe → Safe (Combine 'Safe 'Safe = 'Safe) 
-    safeContinue (readIORef state) `ibind` \oldValue ->
+    safeReadState state `ibind` \oldValue ->
     -- Step 3: Safe → Safe (still Safe grade)
-    safeContinue (writeIORef state newValue) `ibind` \_ ->
+    safeWriteState state newValue `ibind` \_ ->
     -- Step 4: Safe → Idempotent (grade elevation)
     weakenToIdempotent (safeContinue (return oldValue))
 
