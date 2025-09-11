@@ -80,7 +80,10 @@ instance Semigroup Grade where
 instance Monoid Grade where
     mempty = Pure  -- Pure is the identity element (⊥ in the lattice)
 
--- Type-level max function for Grade comparison
+-- Type-level max function mirroring the runtime max operation
+-- Uses the same ordering as the Ord instance: Pure < Safe < Idempotent < Unsafe
+-- Note: Data.Type.Ord.Max doesn't work directly with custom types like Grade,
+-- so we implement a minimal Max type family that mirrors the Ord instance
 type family Max (g :: Grade) (h :: Grade) :: Grade where
     Max g g = g  -- idempotent: max(g, g) = g
     Max 'Pure g = g  -- Pure is minimum
@@ -90,7 +93,7 @@ type family Max (g :: Grade) (h :: Grade) :: Grade where
     Max 'Safe 'Idempotent = 'Idempotent  -- Safe < Idempotent
     Max 'Idempotent 'Safe = 'Idempotent  -- Safe < Idempotent
 
--- Type-level Monoid operation using max
+-- Type-level Monoid operation using our Max function
 type family (g :: Grade) <> (h :: Grade) :: Grade where
     g <> h = Max g h
 
