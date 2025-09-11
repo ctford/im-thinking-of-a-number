@@ -70,14 +70,8 @@ import System.Random
    • Algebraic: Composition follows mathematical laws
    • HTTP Semantic: Maps to proper HTTP method semantics
 -}
-data Grade = Pure | Safe | Idempotent | Unsafe deriving (Show, Eq, Ord)
+data Grade = Pure | Safe | Idempotent | Unsafe
 
--- Monoid instance for Grade: forms a join-semilattice with max operation
-instance Semigroup Grade where
-    (<>) = max  -- Uses the natural Ord instance: Pure < Safe < Idempotent < Unsafe
-
-instance Monoid Grade where
-    mempty = Pure  -- Pure is the identity element (⊥ in the lattice)
 
 -- Type-level Monoid operation implementing grade combination
 -- Uses the same ordering as the Ord instance: Pure < Safe < Idempotent < Unsafe

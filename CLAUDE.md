@@ -62,6 +62,10 @@ cabal clean                    # Clean build artifacts
   - Eliminated `pureValue` alias that was just `greturn`
   - Use `greturn` directly for pure operations
   - Cleaner API with standard graded monad terminology
+- ✅ **Removed unused Grade instances**
+  - Removed Show, Eq, Ord deriving clauses (not used at runtime)
+  - Removed Semigroup and Monoid instances (only type-level composition used)
+  - Grade type only exists at type level, no runtime values needed
 - ✅ **All tests passing with streamlined type system**
 
 ## Testing the Current Application
