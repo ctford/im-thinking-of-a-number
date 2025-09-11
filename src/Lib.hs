@@ -19,14 +19,8 @@ module Lib
     , greturn
     , gbind
     , logRequest
-    -- Export IORef helper functions
-    , readState
-    , writeState
-    , addToState
-    , randomiseState
     -- Export data types for testing
     , NumberResponse(..)
-    , NumberState
     , HttpVerb(..)
     ) where
 
