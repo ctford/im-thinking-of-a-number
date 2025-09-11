@@ -1,13 +1,15 @@
 # Development Guide
 
+Haskell web application demonstrating graded monad effects for HTTP method semantics.
+
 ## Project Structure
 ```
 im-thinking-of-a-number/
 ├── app/Main.hs              -- Application entry point
-├── src/Lib.hs               -- Main library module 
-├── test/Spec.hs             -- Test entry point
-├── static/                  -- Static files
-└── im-thinking-of-a-number.cabal  -- Cabal package configuration
+├── src/Lib.hs               -- Graded monad implementation
+├── test/Spec.hs             -- Comprehensive test suite
+├── static/index.html        -- HTML frontend
+└── im-thinking-of-a-number.cabal  -- Cabal configuration
 ```
 
 ## Development Commands
@@ -48,52 +50,33 @@ cabal repl                     # Start REPL
 cabal clean                    # Clean build artifacts
 ```
 
-## Current Implementation
+## Implementation
 
-### Implementation Status ✅ Complete
-- ✅ **Graded monad system** with proper type-level grade combination
-- ✅ **HTTP API endpoints** (/show, /set, /add, /randomise) with semantic grading
-- ✅ **Grade hierarchy** (Pure < Safe < Idempotent < Unsafe) with automatic composition
-- ✅ **Comprehensive test suite** (9 examples) verifying HTTP semantics and graded monad laws
-- ✅ **HTML frontend** with client-side validation and proper HTTP method usage
-- ✅ **Cabal build system** with clean project structure
+### Features
+- **Graded monad system** with type-level grade combination (`Action g a`)
+- **HTTP API endpoints** with semantic grading:
+  - `GET /show` → `Safe` (read-only)  
+  - `PUT /set` → `Idempotent` (repeatable)
+  - `POST /add` → `Unsafe` (side effects)
+  - `POST /randomise` → `Unsafe` (non-deterministic)
+- **Grade hierarchy**: `Pure < Safe < Idempotent < Unsafe`
+- **Type safety**: Prevents unsafe grade downgrades at compile time
+- **Natural numbers**: Full validation chain (HTML + JavaScript + Haskell)
+- **Comprehensive test suite**: 9 tests verifying HTTP semantics and graded monad laws
 
-### Recent Changes
-- ✅ **Refactored random number generation** - Moved random generation logic into `randomiseState` function in IORef operations section
-  - `randomiseState :: NumberState -> GradeApp 'Unsafe ()` - generates random number and writes to state
-  - `randomiseNumber` now calls `randomiseState` followed by `readState` to demonstrate explicit state reading pattern
-  - Maintains proper separation of concerns between state mutation and value retrieval
-- ✅ **Enhanced HTML validation for natural numbers** - Improved client-side validation to only accept natural numbers
-  - Added `step="1"` to HTML inputs to prevent decimal entry
-  - Updated JavaScript validation to use `Number.isInteger()` for robust integer checking
-  - Updated placeholders and error messages to clearly indicate "natural number" requirement
-  - Fixed terminology from "indexed monad effects" to "graded monad effects"
+## API Testing
 
-## Testing the Current Application
+Server runs on http://localhost:8080
 
-The server is running on http://localhost:8080
-
-### Manual API Testing
 ```bash
-# Show current number
+# Basic operations
 curl http://localhost:8080/show
-
-# Set number to 42
 curl -X PUT -H "Content-Type: application/json" -d '{"value": 42}' http://localhost:8080/set
-
-# Add 8 to current number
-curl -X POST -H "Content-Type: application/json" -d '{"value": 8}' http://localhost:8080/add
-
-# Generate random number
+curl -X POST -H "Content-Type: application/json" -d '{"value": 8}' http://localhost:8080/add  
 curl -X POST http://localhost:8080/randomise
 
-# Test wrong HTTP method (should get 405)
-curl -X POST http://localhost:8080/set
+# Error case (wrong HTTP method)
+curl -X POST http://localhost:8080/set  # Should return 405
 ```
 
-### Browser Testing
-Open http://localhost:8080 in browser and use the form interface.
-
-## Testing Strategy
-- Use Playwright to verify functionality at each step
-- Commit after each working increment
+Web interface: http://localhost:8080

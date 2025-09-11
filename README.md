@@ -17,10 +17,10 @@ A Haskell web application demonstrating how to use graded monad effects to typec
 This application demonstrates graded monad effects through a number-thinking game:
 
 ### HTTP Operations with Natural Semantic Grades
-- **GET /show**: `GradeApp 'Safe` (read-only operations)
-- **PUT /set**: `GradeApp 'Idempotent` (repeatable with same result)  
-- **POST /add**: `GradeApp 'Unsafe` (observable side effects)
-- **POST /randomise**: `GradeApp 'Unsafe` (non-deterministic effects)
+- **GET /show**: `Action 'Safe` (read-only operations)
+- **PUT /set**: `Action 'Idempotent` (repeatable with same result)  
+- **POST /add**: `Action 'Unsafe` (observable side effects)
+- **POST /randomise**: `Action 'Unsafe` (non-deterministic effects)
 
 ### Type System Features
 - **Monoid Composition**: Grade forms a join-semilattice with `<>` operator
@@ -68,7 +68,7 @@ open http://localhost:8080
 
 This implementation demonstrates **Grade as Monoid** for effect composition:
 
-> Orchard, Dominic, et al. "[Effect systems via graded monads](https://www.cs.kent.ac.uk/people/staff/dao7/publ/haskell14-effects.pdf)." *Proceedings of the 2014 ACM SIGPLAN symposium on Haskell*. 2014.
+> Orchard, Dominic, Tomas Petricek, and Alan Mycroft. "[Effect systems via graded monads](https://www.cs.kent.ac.uk/people/staff/dao7/publ/haskell14-effects.pdf)." *Proceedings of the 2014 ACM SIGPLAN symposium on Haskell*. 2014.
 
 **Key Innovation**: Grade lattice forms a natural join-semilattice that is a Monoid:
 - `Pure` is `mempty` (identity element)

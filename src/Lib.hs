@@ -261,18 +261,11 @@ startApp = do
     putStrLn "=== Haskell Server with Graded Monad Effects ==="
     putStrLn "Port: 8080"
     putStrLn ""
-    putStrLn "Effect Grade Hierarchy: Pure < Safe < Idempotent < Unsafe"
     putStrLn "API Routes with semantic grading:"  
     putStrLn "  GET  /show     → Safe       (read-only operations)"
     putStrLn "  PUT  /set      → Idempotent (repeatable with same result)" 
     putStrLn "  POST /add      → Unsafe     (observable side effects)"
     putStrLn "  POST /randomise → Unsafe     (non-deterministic effects)"
-    putStrLn ""
-    putStrLn "Monoid Grade composition with (<>) operator:"
-    putStrLn "• Pure <> g = g              (Pure is identity/mempty)"
-    putStrLn "• Safe <> Idempotent = Idempotent (automatic composition)"
-    putStrLn "• Operations have their natural semantic grades"
-    putStrLn "• No manual grade elevation needed"
     putStrLn ""
     
     -- Initialize number state to 0
