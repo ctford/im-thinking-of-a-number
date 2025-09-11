@@ -41,6 +41,7 @@ import Data.IORef
 import Control.Monad.IO.Class
 import Numeric.Natural
 import System.Random
+import System.IO (hFlush, stdout)
 
 -- ============================================================================
 -- GRADE HIERARCHY - Complete lattice for HTTP effect classification
@@ -180,7 +181,9 @@ type NumberState = IORef Natural
 -- Safe effect: HTTP request logging (non-observable to client)  
 -- Standard Apache/NCSA Common Log Format style logging
 logRequest :: String -> String -> GradeApp 'Safe ()
-logRequest method path = liftSafeIO $ putStrLn $ "- - [" ++ method ++ "] " ++ path ++ " 200 -"
+logRequest method path = liftSafeIO $ do
+    putStrLn $ "- - [" ++ method ++ "] " ++ path ++ " 200 -"
+    hFlush stdout
 
 -- Safe operation: read current number (no side effects)  
 -- Demonstrates algebraic composition with Monoid
