@@ -106,7 +106,7 @@ newtype Action (g :: Grade) a = Action { runAction :: IO a }
 
 -- Graded monad operations with single grade parameter
 greturn :: a -> Action 'Pure a
-greturn x = Action (return x)
+greturn = Action . return
 
 -- Graded bind: composition uses Monoid operation (<>)
 gbind :: Action g a -> (a -> Action h b) -> Action (g <> h) b
