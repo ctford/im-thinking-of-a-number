@@ -156,8 +156,6 @@ idempotent = GradeApp . return
 unsafe :: a -> GradeApp 'Unsafe a
 unsafe = GradeApp . return
 
--- Strengthen is impossible (no downgrading) - this would be a type error
-
 -- JSON data types
 data NumberRequest = NumberRequest { value :: Natural } deriving Show
 data NumberResponse = NumberResponse { current :: Natural } deriving Show
@@ -183,6 +181,7 @@ showNumber state =
     logRequest "GET" "/show" `gbind` \_ ->
     readState state `gbind` \n ->
     safe (NumberResponse n)
+
 
 -- Idempotent operation: set number (repeatable with same result)
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
@@ -211,7 +210,6 @@ randomValue = GradeApp (fromIntegral <$> randomRIO (0, 1000 :: Int))
 randomiseNumber :: NumberState -> GradeApp 'Unsafe NumberResponse
 randomiseNumber state = 
     logRequest "POST" "/randomise" `gbind` \_ ->
-    -- Random generation is inherently unsafe (non-deterministic)
     randomValue `gbind` \randomVal ->
     writeState state randomVal `gbind` \_ ->
     unsafe (NumberResponse randomVal)
