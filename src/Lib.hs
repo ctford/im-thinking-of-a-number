@@ -129,8 +129,7 @@ writeState value state = Action $ do
 -- Non-idempotent operation, hence Unsafe grade
 addToState :: Natural -> NumberState -> Action 'Unsafe ()
 addToState addValue state = Action $ do
-    current <- readIORef state
-    writeIORef state (current + addValue)
+    modifyIORef' state (+ addValue)
 
 -- Randomise state operation (unsafe by nature)
 -- Non-deterministic operation, hence Unsafe grade
