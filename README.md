@@ -46,14 +46,19 @@ open http://localhost:8080
 
 ## Development Scripts
 
-- **`./run-tests`** - Test API endpoints (requires running server)
-- **`./start-server`** - Start server, run comprehensive tests, stop server  
-- **`cabal test`** - Run unit tests for graded monad laws and HTTP semantics
+### Testing Scripts
+- **`cabal test`** - **Unit tests**: Graded monad laws, HTTP semantics (no server required)
+- **`./run-tests`** - **Integration tests**: API endpoints via cURL (requires server already running)
+- **`./start-server`** - **Full integration**: Starts server → runs API tests → stops server
+
+### Test Types Explained
+- **Unit tests** (`cabal test`): Test graded monad composition, effect grades, algebraic laws
+- **Integration tests** (`./run-tests`, `./start-server`): Test actual HTTP endpoints, JSON responses, server behavior
 
 ```bash
-# Full development cycle
-./start-server    # Comprehensive integration testing
-cabal test        # Unit test verification
+# Development workflow
+cabal test        # Fast unit tests (no server needed)
+./start-server    # Full integration testing cycle
 ```
 
 ## Implementation Status
