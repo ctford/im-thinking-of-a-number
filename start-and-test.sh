@@ -1,0 +1,33 @@
+#!/bin/bash
+# Start server, run API tests, then stop server
+
+set -e
+
+echo "=== Starting server and running tests ==="
+
+# Start server in background
+echo "Starting server..."
+cabal run im-thinking-of-a-number-exe > server.log 2>&1 &
+SERVER_PID=$!
+
+# Wait for server to start
+echo "Waiting for server to start..."
+sleep 3
+
+# Check if server is actually running
+if ! curl -s http://localhost:8080/show > /dev/null 2>&1; then
+    echo "ERROR: Server failed to start or is not responding"
+    kill $SERVER_PID 2>/dev/null || true
+    exit 1
+fi
+
+# Run API tests
+echo "Server started successfully. Running tests..."
+./test-api.sh
+
+# Stop server
+echo -e "\nStopping server..."
+kill $SERVER_PID 2>/dev/null || true
+wait $SERVER_PID 2>/dev/null || true
+
+echo "=== Server testing completed ==="

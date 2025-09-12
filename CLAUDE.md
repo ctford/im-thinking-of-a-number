@@ -85,6 +85,10 @@ Web interface: http://localhost:8080
 
 ## Claude Code Configuration
 
+### Testing Scripts
+- `./test-api.sh` - Test API endpoints (requires running server)
+- `./start-and-test.sh` - Start server, run tests, stop server
+
 ### Hooks
 Configure these hooks in Claude Code settings to automatically run tests and verify server functionality after code changes:
 
@@ -92,9 +96,9 @@ Configure these hooks in Claude Code settings to automatically run tests and ver
 {
   "hooks": {
     "tool-call": {
-      "Edit": "cabal build && cabal test && (cabal run im-thinking-of-a-number-exe &) && sleep 2 && curl -X POST -H 'Content-Type: application/json' -d '{\"value\": 15}' http://localhost:8080/add && curl http://localhost:8080/show && pkill -f im-thinking-of-a-number-exe",
-      "Write": "cabal build && cabal test && (cabal run im-thinking-of-a-number-exe &) && sleep 2 && curl -X POST -H 'Content-Type: application/json' -d '{\"value\": 15}' http://localhost:8080/add && curl http://localhost:8080/show && pkill -f im-thinking-of-a-number-exe",
-      "MultiEdit": "cabal build && cabal test && (cabal run im-thinking-of-a-number-exe &) && sleep 2 && curl -X POST -H 'Content-Type: application/json' -d '{\"value\": 15}' http://localhost:8080/add && curl http://localhost:8080/show && pkill -f im-thinking-of-a-number-exe"
+      "Edit": "cabal build && cabal test && ./start-and-test.sh",
+      "Write": "cabal build && cabal test && ./start-and-test.sh", 
+      "MultiEdit": "cabal build && cabal test && ./start-and-test.sh"
     }
   }
 }
