@@ -235,20 +235,13 @@ server state = showHandler
           :<|> resetHandler
           :<|> staticHandler
   where
-    showHandler :: Handler NumberResponse
-    showHandler = liftIO $ runAction $ showNumber state
+    handle = liftIO . runAction
     
-    setHandler :: NumberRequest -> Handler NumberResponse  
-    setHandler (NumberRequest n) = liftIO $ runAction $ setNumber state n
-        
-    addHandler :: NumberRequest -> Handler NumberResponse
-    addHandler (NumberRequest n) = liftIO $ runAction $ addNumber state n
-
-    randomiseHandler :: Handler NumberResponse
-    randomiseHandler = liftIO $ runAction $ randomiseNumber state
-
-    resetHandler :: Handler NumberResponse
-    resetHandler = liftIO $ runAction $ resetNumber state
+    showHandler = handle $ showNumber state
+    setHandler (NumberRequest n) = handle $ setNumber state n
+    addHandler (NumberRequest n) = handle $ addNumber state n
+    randomiseHandler = handle $ randomiseNumber state
+    resetHandler = handle $ resetNumber state
         
     staticHandler :: Server Raw
     staticHandler = serveDirectoryWith $ (defaultWebAppSettings "static")
