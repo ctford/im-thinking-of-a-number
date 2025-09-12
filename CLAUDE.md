@@ -83,23 +83,22 @@ curl -X POST http://localhost:8080/set  # Should return 405
 
 Web interface: http://localhost:8080
 
-## Claude Code Permissions
+## Claude Code Configuration
 
-Claude has advance permission to proactively run these commands without asking:
+### Hooks
+Configure these hooks in Claude Code settings to automatically run tests and verify server functionality after code changes:
 
-### Build & Test Commands
-- `cabal build` - Build project after code changes
-- `cabal test` - Run test suite to verify functionality
-- `cabal run im-thinking-of-a-number-exe` - Start server for testing
+```json
+{
+  "hooks": {
+    "tool-call": {
+      "Edit": "cabal build && cabal test && (cabal run im-thinking-of-a-number-exe &) && sleep 2 && curl -X POST -H 'Content-Type: application/json' -d '{\"value\": 15}' http://localhost:8080/add && curl http://localhost:8080/show && pkill -f im-thinking-of-a-number-exe",
+      "Write": "cabal build && cabal test && (cabal run im-thinking-of-a-number-exe &) && sleep 2 && curl -X POST -H 'Content-Type: application/json' -d '{\"value\": 15}' http://localhost:8080/add && curl http://localhost:8080/show && pkill -f im-thinking-of-a-number-exe",
+      "MultiEdit": "cabal build && cabal test && (cabal run im-thinking-of-a-number-exe &) && sleep 2 && curl -X POST -H 'Content-Type: application/json' -d '{\"value\": 15}' http://localhost:8080/add && curl http://localhost:8080/show && pkill -f im-thinking-of-a-number-exe"
+    }
+  }
+}
+```
 
-### Git Commands  
-- `git status` - Check repository status
-- `git add` - Stage files for commit
-- `git commit` - Commit changes with descriptive messages
-- `git diff` - Review changes before committing
-
-### Testing Commands
-- `curl` commands - Test API endpoints (GET /show, POST /add, etc.)
-- Server startup/shutdown for endpoint verification
-
-This eliminates the need to ask permission for standard development workflow steps while keeping explanations of what's being done.
+### Git Permissions
+Claude has advance permission to run git commands (`git status`, `git add`, `git commit`, `git diff`) without asking, to streamline the development workflow.
