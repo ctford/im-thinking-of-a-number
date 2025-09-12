@@ -48,17 +48,17 @@ open http://localhost:8080
 
 ### Testing Scripts
 - **`./run-unit-tests`** - **Unit tests**: Graded monad laws, HTTP semantics (no server required)
-- **`./test-integration`** - **Integration tests**: API endpoints via cURL (requires server already running)
+- **`./run-integration-tests`** - **Integration tests**: API endpoints via cURL (requires server already running)
 - **`./start-server`** - **Full integration**: Starts server → runs API tests → stops server
 
 ### Test Types Explained
 - **Unit tests** (`./run-unit-tests`): Test graded monad composition, effect grades, algebraic laws
-- **Integration tests** (`./test-integration`, `./start-server`): Test actual HTTP endpoints, JSON responses, server behavior
+- **Integration tests** (`./run-integration-tests`, `./start-server`): Test actual HTTP endpoints, JSON responses, server behavior
 
 ```bash
 # Development workflow
-./run-unit-tests    # Fast unit tests (no server needed)
-./start-server      # Full integration testing cycle
+./run-unit-tests        # Fast unit tests (no server needed)
+./start-server          # Full integration testing cycle
 ```
 
 ## Implementation Status
