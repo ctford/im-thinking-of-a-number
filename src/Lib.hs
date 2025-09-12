@@ -182,7 +182,7 @@ logRequest verb path maybeRequestValue currentValue = Action $ do
 showNumber :: NumberState -> Action 'Safe NumberResponse
 showNumber state = 
     readState state `bind` \n ->
-    logRequest GET "/show" Nothing n `bind` \_ ->
+    logRequest GET "/number" Nothing n `bind` \_ ->
     safe (NumberResponse n)
 
 
@@ -191,7 +191,7 @@ showNumber state =
 setNumber :: NumberState -> Natural -> Action 'Idempotent NumberResponse
 setNumber state newValue = 
     writeState newValue state `bind` \_ ->
-    logRequest PUT "/set" (Just newValue) newValue `bind` \_ ->
+    logRequest PUT "/number" (Just newValue) newValue `bind` \_ ->
     idempotent (NumberResponse newValue)
 
 -- Unsafe operation: add to number (observable side effects)
@@ -200,7 +200,7 @@ addNumber :: NumberState -> Natural -> Action 'Unsafe NumberResponse
 addNumber state addValue = 
     addToState addValue state `bind` \_ ->
     readState state `bind` \newValue ->
-    logRequest POST "/add" (Just addValue) newValue `bind` \_ ->
+    logRequest POST "/number/add" (Just addValue) newValue `bind` \_ ->
     unsafe (NumberResponse newValue)
 
 -- Unsafe operation: randomise number (non-deterministic side effects)
@@ -209,7 +209,7 @@ randomiseNumber :: NumberState -> Action 'Unsafe NumberResponse
 randomiseNumber state = 
     randomiseState state `bind` \_ ->
     readState state `bind` \randomVal ->
-    logRequest POST "/randomise" Nothing randomVal `bind` \_ ->
+    logRequest POST "/number/randomise" Nothing randomVal `bind` \_ ->
     unsafe (NumberResponse randomVal)
 
 -- Idempotent operation: reset number to zero (repeatable with same result)
@@ -217,16 +217,16 @@ randomiseNumber state =
 resetNumber :: NumberState -> Action 'Idempotent NumberResponse
 resetNumber state = 
     writeState 0 state `bind` \_ ->
-    logRequest DELETE "/reset" Nothing 0 `bind` \_ ->
+    logRequest DELETE "/number" Nothing 0 `bind` \_ ->
     idempotent (NumberResponse 0)
 
 
 -- Servant API definition with proper HTTP methods
-type API = "show" :> Get '[JSON] NumberResponse
-        :<|> "set" :> ReqBody '[JSON] NumberRequest :> Put '[JSON] NumberResponse  
-        :<|> "add" :> ReqBody '[JSON] NumberRequest :> Post '[JSON] NumberResponse
-        :<|> "randomise" :> Post '[JSON] NumberResponse
-        :<|> "reset" :> Delete '[JSON] NumberResponse
+type API = "number" :> Get '[JSON] NumberResponse
+        :<|> "number" :> ReqBody '[JSON] NumberRequest :> Put '[JSON] NumberResponse  
+        :<|> "number" :> "add" :> ReqBody '[JSON] NumberRequest :> Post '[JSON] NumberResponse
+        :<|> "number" :> "randomise" :> Post '[JSON] NumberResponse
+        :<|> "number" :> Delete '[JSON] NumberResponse
         :<|> Raw
 
 api :: Proxy API
@@ -271,11 +271,11 @@ startApp = do
     putStrLn "Port: 8080"
     putStrLn ""
     putStrLn "API Routes with semantic grading:"  
-    putStrLn "  GET    /show     → Safe       (read-only operations)"
-    putStrLn "  PUT    /set      → Idempotent (repeatable with same result)" 
-    putStrLn "  POST   /add      → Unsafe     (observable side effects)"
-    putStrLn "  POST   /randomise → Unsafe     (non-deterministic effects)"
-    putStrLn "  DELETE /reset    → Idempotent (reset to zero, repeatable)"
+    putStrLn "  GET    /number          → Safe       (read-only operations)"
+    putStrLn "  PUT    /number          → Idempotent (repeatable with same result)" 
+    putStrLn "  POST   /number/add      → Unsafe     (observable side effects)"
+    putStrLn "  POST   /number/randomise → Unsafe     (non-deterministic effects)"
+    putStrLn "  DELETE /number          → Idempotent (reset to zero, repeatable)"
     putStrLn ""
     
     -- Initialize number state to 0

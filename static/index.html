@@ -55,32 +55,32 @@
         <label>Set Number:</label><br>
         <input type="number" id="setValue" placeholder="Enter natural number" min="0" step="1">
         <button onclick="setNumber()">Set</button>
-        <div class="effect-label">PUT /set (Idempotent)</div>
+        <div class="effect-label">PUT /number (Idempotent)</div>
     </div>
     
     <div class="input-group">
         <label>Add to Number:</label><br>
         <input type="number" id="addValue" placeholder="Enter natural number" min="0" step="1">
         <button onclick="addNumber()">Add</button>
-        <div class="effect-label">POST /add (Unsafe)</div>
+        <div class="effect-label">POST /number/add (Unsafe)</div>
     </div>
     
     <div class="input-group">
         <label>Randomise Number (0-1000):</label><br>
         <span style="display: inline-block; width: 166px; margin: 5px;"></span>
         <button onclick="randomizeNumber()">Randomise</button>
-        <div class="effect-label">POST /randomise (Unsafe)</div>
+        <div class="effect-label">POST /number/randomise (Unsafe)</div>
     </div>
     
     <div class="input-group">
         <label>Reset Number to Zero:</label><br>
         <span style="display: inline-block; width: 166px; margin: 5px;"></span>
         <button onclick="resetNumber()">Reset</button>
-        <div class="effect-label">DELETE /reset (Idempotent)</div>
+        <div class="effect-label">DELETE /number (Idempotent)</div>
     </div>
     
     <div id="result">Current number will be displayed here</div>
-    <div class="effect-label">GET /show (Safe)</div>
+    <div class="effect-label">GET /number (Safe)</div>
     
     <script>
         function setNumber() {
@@ -97,7 +97,7 @@
                 return;
             }
             
-            fetch('/set', {
+            fetch('/number', {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({value: numValue})
@@ -131,7 +131,7 @@
                 return;
             }
             
-            fetch('/add', {
+            fetch('/number/add', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({value: numValue})
@@ -152,7 +152,7 @@
         }
         
         function randomizeNumber() {
-            fetch('/randomise', {
+            fetch('/number/randomise', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'}
             })
@@ -171,7 +171,7 @@
         }
         
         function resetNumber() {
-            fetch('/reset', {
+            fetch('/number', {
                 method: 'DELETE',
                 headers: {'Content-Type': 'application/json'}
             })
@@ -191,7 +191,7 @@
         
         // Show current number on page load
         function loadCurrentNumber() {
-            fetch('/show')
+            fetch('/number')
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);

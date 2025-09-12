@@ -55,11 +55,11 @@ cabal clean                    # Clean build artifacts
 ### Features
 - **Graded monad system** with type-level grade combination (`Action g a`)
 - **HTTP API endpoints** with semantic grading:
-  - `GET /show` → `Safe` (read-only)  
-  - `PUT /set` → `Idempotent` (repeatable)
-  - `POST /add` → `Unsafe` (side effects)
-  - `POST /randomise` → `Unsafe` (non-deterministic)
-  - `DELETE /reset` → `Idempotent` (reset to zero, repeatable)
+  - `GET /number` → `Safe` (read-only)  
+  - `PUT /number` → `Idempotent` (repeatable)
+  - `POST /number/add` → `Unsafe` (side effects)
+  - `POST /number/randomise` → `Unsafe` (non-deterministic)
+  - `DELETE /number` → `Idempotent` (reset to zero, repeatable)
 - **Grade hierarchy**: `Pure < Safe < Idempotent < Unsafe`
 - **Type safety**: Prevents unsafe grade downgrades at compile time
 - **Natural numbers**: Full validation chain (HTML + JavaScript + Haskell)
@@ -71,14 +71,14 @@ Server runs on http://localhost:8080
 
 ```bash
 # Basic operations
-curl http://localhost:8080/show
-curl -X PUT -H "Content-Type: application/json" -d '{"value": 42}' http://localhost:8080/set
-curl -X POST -H "Content-Type: application/json" -d '{"value": 8}' http://localhost:8080/add  
-curl -X POST http://localhost:8080/randomise
-curl -X DELETE http://localhost:8080/reset
+curl http://localhost:8080/number
+curl -X PUT -H "Content-Type: application/json" -d '{"value": 42}' http://localhost:8080/number
+curl -X POST -H "Content-Type: application/json" -d '{"value": 8}' http://localhost:8080/number/add  
+curl -X POST http://localhost:8080/number/randomise
+curl -X DELETE http://localhost:8080/number
 
 # Error case (wrong HTTP method)
-curl -X POST http://localhost:8080/set  # Should return 405
+curl -X POST http://localhost:8080/number  # Should return 405
 ```
 
 Web interface: http://localhost:8080
