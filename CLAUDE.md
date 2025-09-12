@@ -82,3 +82,24 @@ curl -X POST http://localhost:8080/set  # Should return 405
 ```
 
 Web interface: http://localhost:8080
+
+## Claude Code Permissions
+
+Claude has advance permission to proactively run these commands without asking:
+
+### Build & Test Commands
+- `cabal build` - Build project after code changes
+- `cabal test` - Run test suite to verify functionality
+- `cabal run im-thinking-of-a-number-exe` - Start server for testing
+
+### Git Commands  
+- `git status` - Check repository status
+- `git add` - Stage files for commit
+- `git commit` - Commit changes with descriptive messages
+- `git diff` - Review changes before committing
+
+### Testing Commands
+- `curl` commands - Test API endpoints (GET /show, POST /add, etc.)
+- Server startup/shutdown for endpoint verification
+
+This eliminates the need to ask permission for standard development workflow steps while keeping explanations of what's being done.
