@@ -17,11 +17,11 @@ A Haskell web application demonstrating how to use graded monad effects to typec
 This application demonstrates graded monad effects through a number-thinking game:
 
 ### HTTP Operations with Natural Semantic Grades
-- **GET /show**: `Action 'Safe` (read-only operations)
-- **PUT /set**: `Action 'Idempotent` (repeatable with same result)  
-- **POST /add**: `Action 'Unsafe` (observable side effects)
-- **POST /randomise**: `Action 'Unsafe` (non-deterministic effects)
-- **DELETE /reset**: `Action 'Idempotent` (reset to zero, repeatable)
+- **GET /number**: `Action 'Safe` (read-only operations)
+- **PUT /number**: `Action 'Idempotent` (repeatable with same result)  
+- **POST /number/add**: `Action 'Unsafe` (observable side effects)
+- **POST /number/randomise**: `Action 'Unsafe` (non-deterministic effects)
+- **DELETE /number**: `Action 'Idempotent` (reset to zero, repeatable)
 
 ### Type System Features
 - **Monoid Composition**: Grade forms a join-semilattice with `<>` operator

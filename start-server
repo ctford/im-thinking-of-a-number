@@ -15,7 +15,7 @@ echo "Waiting for server to start..."
 sleep 3
 
 # Check if server is actually running
-if ! curl -s http://localhost:8080/show > /dev/null 2>&1; then
+if ! curl -s http://localhost:8080/number > /dev/null 2>&1; then
     echo "ERROR: Server failed to start or is not responding"
     kill $SERVER_PID 2>/dev/null || true
     exit 1

@@ -15,7 +15,7 @@ main :: IO ()
 main = hspec $ do
 
   describe "HTTP Operations with Effect Grades" $ do
-    it "verifies GET /show operation is Safe grade" $ do
+    it "verifies GET /number operation is Safe grade" $ do
       -- Safe operations: read-only with logging effects
       state <- newIORef (123 :: Natural)
       NumberResponse value <- runAction $ showNumber state
@@ -24,7 +24,7 @@ main = hspec $ do
       unchanged <- readIORef state  
       unchanged `shouldBe` 123
       
-    it "verifies PUT /set operation is Idempotent grade" $ do
+    it "verifies PUT /number operation is Idempotent grade" $ do
       -- Idempotent operations: repeatable with same result
       state <- newIORef (0 :: Natural)
       NumberResponse result1 <- runAction $ setNumber state 99
@@ -34,7 +34,7 @@ main = hspec $ do
       finalValue <- readIORef state
       finalValue `shouldBe` 99
       
-    it "verifies POST /add operation is Unsafe grade" $ do  
+    it "verifies POST /number/add operation is Unsafe grade" $ do  
       -- Unsafe operations: observable side effects, non-idempotent
       state <- newIORef (10 :: Natural)
       NumberResponse result1 <- runAction $ addNumber state 5
@@ -44,7 +44,7 @@ main = hspec $ do
       finalValue <- readIORef state
       finalValue `shouldBe` 20
       
-    it "verifies POST /randomise operation is Unsafe grade" $ do
+    it "verifies POST /number/randomise operation is Unsafe grade" $ do
       -- Unsafe operations: non-deterministic, observable side effects  
       state <- newIORef (0 :: Natural)
       NumberResponse result <- runAction $ randomiseNumber state
@@ -55,7 +55,7 @@ main = hspec $ do
       -- State should be updated  
       finalValue `shouldBe` result
       
-    it "verifies DELETE /reset operation is Idempotent grade" $ do
+    it "verifies DELETE /number operation is Idempotent grade" $ do
       -- Idempotent operations: repeatable with same result
       state <- newIORef (456 :: Natural)
       NumberResponse result1 <- runAction $ resetNumber state
