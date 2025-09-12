@@ -229,8 +229,8 @@ api = Proxy
 -- Server implementation using graded monads
 server :: NumberState -> Server API
 server state = handle $ showNumber state
-          :<|> (\(NumberRequest n) -> handle $ setNumber state n)
-          :<|> (\(NumberRequest n) -> handle $ addNumber state n)
+          :<|> \(NumberRequest n) -> handle $ setNumber state n
+          :<|> \(NumberRequest n) -> handle $ addNumber state n
           :<|> handle $ randomiseNumber state
           :<|> handle $ resetNumber state
           :<|> staticHandler
