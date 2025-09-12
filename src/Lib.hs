@@ -226,7 +226,7 @@ type API = "number" :> Get '[JSON] NumberResponse
 api :: Proxy API
 api = Proxy
 
--- Server implementation using indexed monads
+-- Server implementation using graded monads
 server :: NumberState -> Server API
 server state = showHandler
           :<|> setHandler  
