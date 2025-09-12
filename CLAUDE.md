@@ -86,8 +86,8 @@ Web interface: http://localhost:8080
 ## Claude Code Configuration
 
 ### Testing Scripts
-- `./test-endpoints-script` - Test API endpoints (requires running server)
-- `./start` - Start server, run tests, stop server
+- `./run-tests` - Test API endpoints (requires running server)
+- `./start-server` - Start server, run tests, stop server
 
 ### Hooks
 Configure these hooks in Claude Code settings to automatically run tests and verify server functionality after code changes:
@@ -96,9 +96,9 @@ Configure these hooks in Claude Code settings to automatically run tests and ver
 {
   "hooks": {
     "tool-call": {
-      "Edit": "cabal build && cabal test && ./start",
-      "Write": "cabal build && cabal test && ./start", 
-      "MultiEdit": "cabal build && cabal test && ./start"
+      "Edit": "cabal build && cabal test && ./start-server",
+      "Write": "cabal build && cabal test && ./start-server", 
+      "MultiEdit": "cabal build && cabal test && ./start-server"
     }
   }
 }
