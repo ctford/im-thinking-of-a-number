@@ -23,7 +23,7 @@ fi
 
 # Run API tests
 echo "Server started successfully. Running tests..."
-./run-tests
+./test-integration
 
 # Stop server
 echo -e "\nStopping server..."

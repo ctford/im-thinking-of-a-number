@@ -1,0 +1,9 @@
+#!/bin/bash
+# Run unit tests for graded monad laws and HTTP semantics
+
+set -e
+
+echo "Running unit tests..."
+cabal test
+
+echo "Unit tests completed!"
