@@ -227,6 +227,7 @@ api :: Proxy API
 api = Proxy
 
 -- Server implementation using graded monads
+-- Handlers must align positionally with API routes via :<|> operator
 server :: NumberState -> Server API
 server state = handle (showNumber state)
           :<|> (\(NumberRequest n) -> handle $ setNumber state n)
