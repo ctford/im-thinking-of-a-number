@@ -228,20 +228,14 @@ api = Proxy
 
 -- Server implementation using graded monads
 server :: NumberState -> Server API
-server state = showHandler
-          :<|> setHandler  
-          :<|> addHandler
-          :<|> randomiseHandler
-          :<|> resetHandler
+server state = handle (showNumber state)
+          :<|> (\(NumberRequest n) -> handle $ setNumber state n)
+          :<|> (\(NumberRequest n) -> handle $ addNumber state n)
+          :<|> handle (randomiseNumber state)
+          :<|> handle (resetNumber state)
           :<|> staticHandler
   where
     handle = liftIO . runAction
-    
-    showHandler = handle $ showNumber state
-    setHandler (NumberRequest n) = handle $ setNumber state n
-    addHandler (NumberRequest n) = handle $ addNumber state n
-    randomiseHandler = handle $ randomiseNumber state
-    resetHandler = handle $ resetNumber state
         
     staticHandler :: Server Raw
     staticHandler = serveDirectoryWith $ (defaultWebAppSettings "static")
