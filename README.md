@@ -44,6 +44,18 @@ cabal exec im-thinking-of-a-number-exe
 open http://localhost:8080
 ```
 
+## Development Scripts
+
+- **`./run-tests`** - Test API endpoints (requires running server)
+- **`./start-server`** - Start server, run comprehensive tests, stop server  
+- **`cabal test`** - Run unit tests for graded monad laws and HTTP semantics
+
+```bash
+# Full development cycle
+./start-server    # Comprehensive integration testing
+cabal test        # Unit test verification
+```
+
 ## Implementation Status
 
 ### Complete ✅
