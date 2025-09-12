@@ -87,14 +87,14 @@ type family (g :: Grade) <> (h :: Grade) :: Grade where
    ASSOCIATIVITY:
    • (g <> h) <> i = g <> (h <> i)    (Composition is associative)
    
-   ABSORPTION (via max operation):
+   ABSORPTION (via <> operation):
    • Safe <> Safe = Safe
-   • Safe <> Idempotent = Idempotent     (max takes higher grade)
-   • Safe <> Unsafe = Unsafe            (max takes higher grade)
-   • Idempotent <> Unsafe = Unsafe      (max takes higher grade)
+   • Safe <> Idempotent = Idempotent     (<> takes higher grade)
+   • Safe <> Unsafe = Unsafe            (<> takes higher grade)
+   • Idempotent <> Unsafe = Unsafe      (<> takes higher grade)
    
    IDEMPOTENCE:
-   • g <> g = g             (max is idempotent)
+   • g <> g = g             (<> is idempotent)
    
    MONOTONICITY:
    • If g₁ ≤ g₂, then h <> g₁ ≤ h <> g₂  (Grade can only increase)
