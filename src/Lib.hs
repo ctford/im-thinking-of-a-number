@@ -107,8 +107,6 @@ newtype Action (g :: Grade) a = Action { runAction :: IO a }
 bind :: Action g a -> (a -> Action h b) -> Action (g <> h) b
 bind (Action x) f = Action (x >>= runAction . f)
 
-
-
 -- ============================================================================
 -- IOREF OPERATIONS - State manipulation with explicit grades
 -- ============================================================================
@@ -137,8 +135,6 @@ randomiseState :: NumberState -> Action 'Unsafe ()
 randomiseState state = Action $ do
     randomVal <- fromIntegral <$> randomRIO (0, 1000 :: Int)
     writeIORef state randomVal
-
-
 
 -- Convenience constructors for different effect grades
 safe :: a -> Action 'Safe a
@@ -185,7 +181,6 @@ showNumber state =
     logRequest GET "/number" Nothing n `bind` \_ ->
     safe (NumberResponse n)
 
-
 -- Idempotent operation: set number (repeatable with same result)
 -- Demonstrates: Safe <> Idempotent = Idempotent (Monoid composition)
 setNumber :: NumberState -> Natural -> Action 'Idempotent NumberResponse
@@ -219,7 +214,6 @@ resetNumber state =
     writeState 0 state `bind` \_ ->
     logRequest DELETE "/number" Nothing 0 `bind` \_ ->
     idempotent (NumberResponse 0)
-
 
 -- Servant API definition with proper HTTP methods
 type API = "number" :> Get '[JSON] NumberResponse
