@@ -5,7 +5,8 @@ import Test.Hspec
 import Data.IORef
 import Numeric.Natural
 
-import App
+import Effects (Action(..), NumberResponse(..), HttpVerb(..), bind)
+import HTTP (showNumber, setNumber, addNumber, randomiseNumber, resetNumber, logRequest)
 
 -- ============================================================================
 -- HTTP OPERATIONS TESTS - Verify graded monad HTTP semantics

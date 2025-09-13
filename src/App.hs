@@ -1,26 +1,10 @@
 module App
     ( startApp
-    -- Export main HTTP operations for testing
-    , showNumber
-    , setNumber
-    , addNumber
-    , randomiseNumber
-    , resetNumber
-    -- Export graded monad primitives for testing  
-    , Action(..)
-    , bind
-    , logRequest
-    -- Export data types for testing
-    , NumberResponse(..)
-    , HttpVerb(..)
     ) where
 
 import Network.Wai.Handler.Warp
 import Data.IORef
-
--- Re-export from layered modules
-import Effects (Action(..), bind, NumberResponse(..), HttpVerb(..))
-import HTTP (showNumber, setNumber, addNumber, randomiseNumber, resetNumber, logRequest, app)
+import HTTP (app)
 
 
 startApp :: IO ()
