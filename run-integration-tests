@@ -5,6 +5,10 @@ set -e
 
 echo "Testing API endpoints..."
 
+# Initialize to known state first
+echo "0. Resetting to known state"
+curl -s -X DELETE http://localhost:8080/number >/dev/null 2>&1 || true
+
 # Test basic operations
 echo "1. Testing GET /number (initial value)"
 curl -s http://localhost:8080/number | jq .
