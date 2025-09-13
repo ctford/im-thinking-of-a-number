@@ -5,9 +5,9 @@ An Idris 2 implementation of the graded monad HTTP effects system, demonstrating
 ## Key Improvements over Haskell Version
 
 ### Dependent Types & Compile-time Verification
-- **Grade composition computed at compile time** via `gradeJoin` function
+- **Elegant grade composition** - Simply `gradeJoin = max` since grades form a total order!
 - **Mathematical laws verified as proofs** (identity, idempotence, absorption)
-- **`DecEq Grade`** enables compile-time grade reasoning
+- **`DecEq Grade`** enables compile-time grade reasoning  
 - **HTTP handlers carry proof of their grade** in the type system
 
 ### Type Safety Enhancements

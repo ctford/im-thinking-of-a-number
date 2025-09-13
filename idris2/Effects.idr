@@ -8,6 +8,7 @@ import Decidable.Equality
 
 ||| Grade hierarchy representing HTTP method semantics
 ||| Uses dependent types for compile-time verification of effect composition
+||| Ordered as: Pure < Safe < Idempotent < Unsafe
 public export
 data Grade : Type where
   Pure       : Grade  -- No effects, pure computation
@@ -23,7 +24,7 @@ Show Grade where
   show Idempotent = "Idempotent"
   show Unsafe = "Unsafe"
 
--- Equality for grades
+-- Equality for grades  
 public export
 Eq Grade where
   Pure == Pure = True
@@ -52,7 +53,8 @@ DecEq Grade where
   decEq Unsafe Safe = No $ \case _ impossible
   decEq Unsafe Idempotent = No $ \case _ impossible
 
--- Ordering relation for grades (forms a lattice)
+-- Ord instance following constructor order: Pure < Safe < Idempotent < Unsafe
+-- (Could be derived automatically, but explicit for clarity)
 public export
 Ord Grade where
   compare Pure Pure = EQ
@@ -67,22 +69,22 @@ Ord Grade where
   compare Unsafe _ = GT
 
 -- ============================================================================
--- DEPENDENT GRADE COMPOSITION - Type-level join operation
+-- ELEGANT GRADE COMPOSITION - max operation for join semilattice
 -- ============================================================================
 
-||| Grade composition implementing join semilattice with absorbing element
-||| Uses dependent types to compute result grade at compile time
+||| Grade composition implementing join semilattice
+||| 
+||| INSIGHT: Since Grade forms a total order (Pure < Safe < Idempotent < Unsafe),
+||| the join operation is simply `max`! This automatically gives us:
+||| • Identity: max Pure g = g (Pure is minimum)
+||| • Associativity: max is associative by definition
+||| • Idempotence: max g g = g
+||| • Absorption: max always takes the "higher" (more restrictive) grade
+||| 
+||| Much more elegant than manual case analysis!
 public export
 gradeJoin : Grade -> Grade -> Grade
-gradeJoin Pure g = g                    -- Pure is identity (left)
-gradeJoin g Pure = g                    -- Pure is identity (right)
-gradeJoin Safe Safe = Safe              -- Idempotent cases
-gradeJoin Idempotent Idempotent = Idempotent
-gradeJoin Unsafe Unsafe = Unsafe
-gradeJoin Unsafe _ = Unsafe             -- Unsafe is absorbing
-gradeJoin _ Unsafe = Unsafe             -- Unsafe is absorbing
-gradeJoin Idempotent Safe = Idempotent  -- Remaining cases
-gradeJoin Safe Idempotent = Idempotent
+gradeJoin = max
 
 -- ============================================================================
 -- GRADED MONAD WITH PROOFS - Actions carry proof of their grade
@@ -159,7 +161,10 @@ unsafeAction io = MkAction io
 ||| Proof that Pure is left identity for grade composition
 public export
 pureLeftIdentity : (g : Grade) -> gradeJoin Pure g = g
-pureLeftIdentity g = Refl
+pureLeftIdentity Pure = Refl
+pureLeftIdentity Safe = Refl
+pureLeftIdentity Idempotent = Refl
+pureLeftIdentity Unsafe = Refl
 
 ||| Proof that Pure is right identity for grade composition  
 public export
