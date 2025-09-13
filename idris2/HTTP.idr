@@ -49,7 +49,7 @@ record NumberRequest where
 ||| Safe grade as logging doesn't modify application state
 public export
 logRequest : HttpVerb -> String -> Nat -> Action Safe ()
-logRequest verb path current = safeAction $ 
+logRequest verb path current = MkAction $ 
   putStrLn "- - [\{show verb}] \{path} 200 - current=\{show current}"
 
 -- ============================================================================
@@ -63,7 +63,7 @@ showNumber : NumberState -> Action Safe Nat
 showNumber state = 
   readState state `bind` \n =>
   logRequest GET "/number" n `bind` \_ =>
-  safeAction (pure n)
+  (MkAction (pure n) : Action Safe Nat)
 
 ||| PUT /number - Set number to specific value (Idempotent grade)
 ||| Same input always produces same result, composes to Idempotent grade
@@ -73,7 +73,7 @@ setNumber state value =
   writeState value state `bind` \_ =>
   readState state `bind` \n =>
   logRequest PUT "/number" n `bind` \_ =>
-  idempotentAction (pure n)
+  (MkAction (pure n) : Action Idempotent Nat)
 
 ||| POST /number/add - Add to current number (Unsafe grade)  
 ||| Non-idempotent operation with observable side effects
@@ -83,7 +83,7 @@ addNumber state addValue =
   addToState addValue state `bind` \_ =>
   readState state `bind` \n =>
   logRequest POST "/number/add" n `bind` \_ =>
-  unsafeAction (pure n)
+  (MkAction (pure n) : Action Unsafe Nat)
 
 ||| POST /number/randomise - Set to random value (Unsafe grade)
 ||| Non-deterministic operation with observable side effects
@@ -93,7 +93,7 @@ randomiseNumber state =
   randomiseState state `bind` \_ =>
   readState state `bind` \n =>
   logRequest POST "/number/randomise" n `bind` \_ =>
-  unsafeAction (pure n)
+  (MkAction (pure n) : Action Unsafe Nat)
 
 ||| DELETE /number - Reset to zero (Idempotent grade)
 ||| Always resets to same value, repeatable with same result
@@ -103,7 +103,7 @@ resetNumber state =
   writeState 0 state `bind` \_ =>
   readState state `bind` \n =>
   logRequest DELETE "/number" n `bind` \_ =>
-  idempotentAction (pure n)
+  (MkAction (pure n) : Action Idempotent Nat)
 
 -- ============================================================================
 -- DIRECT HTTP OPERATIONS - Return Nat directly, no JSON wrapper needed

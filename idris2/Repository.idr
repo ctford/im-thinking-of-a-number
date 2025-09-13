@@ -21,27 +21,27 @@ NumberState = IORef Nat
 ||| Read-only operation, hence Safe grade with proof of non-mutation
 public export
 readState : NumberState -> Action Safe Nat
-readState state = safeAction $ readIORef state
+readState state = MkAction $ readIORef state
 
 ||| Write state operation (idempotent by nature)
 ||| Same input produces same result, hence Idempotent grade
 public export
 writeState : Nat -> NumberState -> Action Idempotent ()
-writeState value state = idempotentAction $ writeIORef state value
+writeState value state = MkAction $ writeIORef state value
 
 ||| Add to state operation (unsafe by nature)  
 ||| Non-idempotent operation with observable side effects
 ||| Multiple calls with same input produce different results
 public export
 addToState : Nat -> NumberState -> Action Unsafe ()
-addToState addValue state = unsafeAction (readIORef state >>= \current => writeIORef state (current + addValue))
+addToState addValue state = MkAction (readIORef state >>= \current => writeIORef state (current + addValue))
 
 ||| Randomise state operation (unsafe by nature)
 ||| Non-deterministic operation with observable side effects
 ||| Each call produces different, unpredictable results (simplified to just set to 42)
 public export
 randomiseState : NumberState -> Action Unsafe ()
-randomiseState state = unsafeAction (writeIORef state 42)
+randomiseState state = MkAction (writeIORef state 42)
 
 -- ============================================================================
 -- STATE CREATION - Constructor for initial state
@@ -51,7 +51,7 @@ randomiseState state = unsafeAction (writeIORef state 42)
 ||| Returns action that creates fresh state reference
 public export
 newNumberState : Nat -> Action Safe NumberState
-newNumberState initial = safeAction $ newIORef initial
+newNumberState initial = MkAction $ newIORef initial
 
 -- ============================================================================
 -- PROOF OBLIGATIONS - Verify operation semantics

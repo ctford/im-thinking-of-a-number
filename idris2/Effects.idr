@@ -16,7 +16,7 @@ data Grade : Type where
   Idempotent : Grade  -- Repeatable operations, same result
   Unsafe     : Grade  -- Observable side effects, state changes
 
--- Show instance for grades
+-- Manual instances for maximum compatibility
 public export
 Show Grade where
   show Pure = "Pure"
@@ -24,7 +24,6 @@ Show Grade where
   show Idempotent = "Idempotent"
   show Unsafe = "Unsafe"
 
--- Equality for grades  
 public export
 Eq Grade where
   Pure == Pure = True
@@ -33,7 +32,19 @@ Eq Grade where
   Unsafe == Unsafe = True
   _ == _ = False
 
--- Decidable equality for grades (enables compile-time reasoning)
+public export
+Ord Grade where
+  compare Pure Pure = EQ
+  compare Pure _ = LT
+  compare Safe Pure = GT
+  compare Safe Safe = EQ
+  compare Safe _ = LT
+  compare Idempotent Pure = GT
+  compare Idempotent Safe = GT
+  compare Idempotent Idempotent = EQ
+  compare Idempotent Unsafe = LT
+  compare Unsafe _ = GT
+
 public export
 DecEq Grade where
   decEq Pure Pure = Yes Refl
@@ -53,21 +64,6 @@ DecEq Grade where
   decEq Unsafe Safe = No $ \case _ impossible
   decEq Unsafe Idempotent = No $ \case _ impossible
 
--- Ord instance following constructor order: Pure < Safe < Idempotent < Unsafe
--- (Could be derived automatically, but explicit for clarity)
-public export
-Ord Grade where
-  compare Pure Pure = EQ
-  compare Pure _ = LT
-  compare Safe Pure = GT
-  compare Safe Safe = EQ
-  compare Safe _ = LT
-  compare Idempotent Pure = GT
-  compare Idempotent Safe = GT
-  compare Idempotent Idempotent = EQ
-  compare Idempotent Unsafe = LT
-  compare Unsafe _ = GT
-
 -- ============================================================================
 -- ELEGANT GRADE COMPOSITION - max operation for join semilattice
 -- ============================================================================
@@ -76,15 +72,34 @@ Ord Grade where
 ||| 
 ||| INSIGHT: Since Grade forms a total order (Pure < Safe < Idempotent < Unsafe),
 ||| the join operation is simply `max`! This automatically gives us:
-||| • Identity: max Pure g = g (Pure is minimum)
+||| • Identity: gradeJoin Pure g = g (Pure is minimum)
 ||| • Associativity: max is associative by definition
-||| • Idempotence: max g g = g
-||| • Absorption: max always takes the "higher" (more restrictive) grade
+||| • Idempotence: gradeJoin g g = g
+||| • Absorption: max always takes the higher (more restrictive) grade
 ||| 
 ||| Much more elegant than manual case analysis!
+-- gradeJoin inlined to max for directness
+-- public export
+-- gradeJoin : Grade -> Grade -> Grade
+-- gradeJoin = max
+
+-- ============================================================================
+-- GRADE COMPOSITION - max operation for join semilattice
+-- ============================================================================
+
+||| Grade composition implementing join semilattice
+||| Manual implementation for clear type inference
 public export
 gradeJoin : Grade -> Grade -> Grade
-gradeJoin = max
+gradeJoin Pure g = g
+gradeJoin g Pure = g  
+gradeJoin Safe Safe = Safe
+gradeJoin Safe Idempotent = Idempotent
+gradeJoin Safe Unsafe = Unsafe
+gradeJoin Idempotent Safe = Idempotent
+gradeJoin Idempotent Idempotent = Idempotent
+gradeJoin Idempotent Unsafe = Unsafe
+gradeJoin Unsafe _ = Unsafe
 
 -- ============================================================================
 -- GRADED MONAD WITH PROOFS - Actions carry proof of their grade
@@ -128,31 +143,19 @@ Applicative (Action g) where
   (MkAction f) <*> (MkAction x) = MkAction (f <*> x)
 
 -- Note: Can't implement Monad directly due to grade tracking
--- Use explicit bind for grade composition
+-- But we can use rebindable syntax for grade-aware do-notation
 
--- ============================================================================
--- GRADE-SPECIFIC CONSTRUCTORS - Proof-carrying convenience functions
--- ============================================================================
+||| Enable do-notation with custom bind for grade composition
+||| Usage: import Effects; use do-notation normally
+namespace ActionDo
+  public export
+  (>>=) : {g, h : Grade} -> 
+          Action g a -> 
+          (a -> Action h b) -> 
+          Action (gradeJoin g h) b
+  (>>=) = bind
 
-||| Construct a pure computation (no effects)
-public export
-pureAction : a -> Action Pure a
-pureAction x = MkAction (pure x)
-
-||| Construct a safe computation (read-only effects)
-public export
-safeAction : IO a -> Action Safe a
-safeAction io = MkAction io
-
-||| Construct an idempotent computation (repeatable effects)
-public export
-idempotentAction : IO a -> Action Idempotent a
-idempotentAction io = MkAction io
-
-||| Construct an unsafe computation (observable side effects)
-public export
-unsafeAction : IO a -> Action Unsafe a
-unsafeAction io = MkAction io
+-- Essential constructors for type clarity\npublic export\nsafeAction : IO a -> Action Safe a\nsafeAction io = MkAction io\n\npublic export\nidempotentAction : IO a -> Action Idempotent a\nidempotentAction io = MkAction io\n\npublic export\nunsafeAction : IO a -> Action Unsafe a\nunsafeAction io = MkAction io"
 
 -- ============================================================================
 -- PROOF OBLIGATIONS - Compile-time verification of grade laws
