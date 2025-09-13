@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Run Idris 2 unit tests
+# Matches the Haskell run-unit-tests script name for consistency
+
+echo "Running Idris 2 unit tests..."
+cd "$(dirname "$0")"
+
+# Build and run the test executable
+idris2 --build idris2.ipkg && ./build/exec/spec

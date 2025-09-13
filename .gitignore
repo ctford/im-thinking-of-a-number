@@ -44,3 +44,10 @@ error.log
 # Python (from earlier proof-of-concept)
 __pycache__/
 *.pyc
+
+# Idris 2 build artifacts
+*/build/
+*.ibc
+*.idr~
+*.ttc
+*.ttm

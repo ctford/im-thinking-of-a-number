@@ -1,0 +1,27 @@
+package idris2-graded-effects
+
+version = 0.1.0
+authors = "Claude Code"
+license = "MIT"
+brief = "Idris 2 implementation of graded monad HTTP effects"
+
+readme = "../README.md"
+
+sourcedir = "."
+
+-- Main library modules
+modules = Effects,
+          Repository,  
+          HTTP
+
+-- Test executable
+executable = "spec"
+main = Spec
+
+-- Dependencies
+depends = base >= 0.6.0,
+          contrib >= 0.6.0,
+          linear >= 0.1.0
+
+-- Compiler options
+opts = "--check"
