@@ -5,7 +5,7 @@ import Test.Hspec
 import Data.IORef
 import Numeric.Natural
 
-import Lib
+import App
 
 -- ============================================================================
 -- HTTP OPERATIONS TESTS - Verify graded monad HTTP semantics

@@ -25,7 +25,10 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      App
+      Effects
+      Repository
+      HTTP
   other-modules:
       Paths_im_thinking_of_a_number
   hs-source-dirs:

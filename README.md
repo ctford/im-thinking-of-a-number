@@ -97,8 +97,34 @@ This implementation demonstrates **Grade as Monoid** for effect composition:
 ## Code Structure
 
 ```
-src/Lib.hs           # Main implementation with graded monads
+src/
+├── App.hs           # Application entry point with re-exports  
+├── Effects.hs       # Core graded monad system and data types
+├── HTTP.hs          # Web layer (API, logging, business operations)
+├── Repository.hs    # Data access layer (IORef operations)
 static/index.html    # Frontend with validation
-app/Main.hs         # Application entry point
+app/Main.hs         # Executable entry point
 *.cabal             # Dependencies and build configuration
 ```
+
+### Module Overview
+
+- **`Effects.hs`** - Foundation module containing:
+  - Grade hierarchy (`Pure < Safe < Idempotent < Unsafe`)  
+  - `Action` graded monad with type-level `<>` composition
+  - Data types (`HttpVerb`, `NumberRequest`, `NumberResponse`)
+  - Core effect constructors (`safe`, `idempotent`, `unsafe`)
+
+- **`Repository.hs`** - Data access operations with semantic grades:
+  - `readState` (Safe), `writeState` (Idempotent)
+  - `addToState` (Unsafe), `randomiseState` (Unsafe)
+
+- **`HTTP.hs`** - Complete web layer combining:
+  - Business operations demonstrating grade composition
+  - HTTP request logging with type-safe verbs
+  - Servant API definition and server implementation
+  - Static file serving
+
+- **`App.hs`** - Main module providing backward compatibility:
+  - Re-exports public API from other modules
+  - `startApp` function for server initialization
