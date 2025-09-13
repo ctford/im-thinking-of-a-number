@@ -1,7 +1,8 @@
 {-# LANGUAGE DataKinds #-}
 
 module Repository
-    ( readState
+    ( NumberState
+    , readState
     , writeState
     , addToState
     , randomiseState
@@ -13,8 +14,11 @@ import System.Random
 import Effects
 
 -- ============================================================================
--- IOREF OPERATIONS - State manipulation with explicit grades
+-- STATE TYPE AND OPERATIONS - State manipulation with explicit grades
 -- ============================================================================
+
+-- Application state for the number
+type NumberState = IORef Natural
 
 -- Read state operation (safe by nature)
 -- Read-only operation, hence Safe grade

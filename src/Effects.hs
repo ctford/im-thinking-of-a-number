@@ -12,17 +12,11 @@ module Effects
     , safe
     , idempotent 
     , unsafe
-    , NumberState
-    , HttpVerb(..)
-    , NumberRequest(..)
-    , NumberResponse(..)
     ) where
 
 import qualified Prelude
-import Prelude (IO, (.), Show, Eq, ($), (<$>))
-import Data.IORef
+import Prelude (IO, (.))
 import Numeric.Natural
-import Data.Aeson
 
 -- ============================================================================
 -- GRADE HIERARCHY - Complete lattice for HTTP effect classification
@@ -102,19 +96,3 @@ idempotent = Action . Prelude.return
 
 unsafe :: a -> Action 'Unsafe a
 unsafe = Action . Prelude.return
-
--- Global state for the number
-type NumberState = IORef Natural
-
--- HTTP verb sum type for type-safe logging  
-data HttpVerb = GET | PUT | POST | DELETE deriving (Show, Eq)
-
--- JSON data types
-data NumberRequest = NumberRequest { value :: Natural } deriving Show
-data NumberResponse = NumberResponse { current :: Natural } deriving Show
-
-instance FromJSON NumberRequest where
-    parseJSON = withObject "NumberRequest" $ \o -> NumberRequest <$> o .: "value"
-
-instance ToJSON NumberResponse where
-    toJSON (NumberResponse n) = object ["value" .= n]

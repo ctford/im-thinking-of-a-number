@@ -3,8 +3,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module HTTP
-    ( -- Business operations
-      showNumber
+    ( -- Data types
+      HttpVerb(..)
+    , NumberRequest(..)
+    , NumberResponse(..)
+    -- Business operations
+    , showNumber
     , setNumber
     , addNumber
     , randomiseNumber
@@ -32,6 +36,23 @@ import System.IO (hFlush, stdout)
 
 import Effects
 import Repository
+
+-- ============================================================================
+-- DATA TYPES - HTTP and JSON types for web layer
+-- ============================================================================
+
+-- HTTP verb sum type for type-safe logging  
+data HttpVerb = GET | PUT | POST | DELETE deriving (Show, Eq)
+
+-- JSON data types
+data NumberRequest = NumberRequest { value :: Natural } deriving Show
+data NumberResponse = NumberResponse { current :: Natural } deriving Show
+
+instance FromJSON NumberRequest where
+    parseJSON = withObject "NumberRequest" $ \o -> NumberRequest <$> o .: "value"
+
+instance ToJSON NumberResponse where
+    toJSON (NumberResponse n) = object ["value" .= n]
 
 
 
