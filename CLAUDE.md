@@ -1,53 +1,66 @@
 # Development Guide
 
-Haskell web application demonstrating graded monad effects for HTTP method semantics.
+Comparative study of graded monad implementations with both Haskell and Idris 2 versions.
 
 ## Project Structure
 ```
 im-thinking-of-a-number/
-├── app/Main.hs              -- Application entry point
-├── src/Lib.hs               -- Graded monad implementation
-├── test/Spec.hs             -- Comprehensive test suite
-├── static/index.html        -- HTML frontend
-└── im-thinking-of-a-number.cabal  -- Cabal configuration
+├── haskell/                  -- Haskell implementation
+│   ├── app/Main.hs           -- Application entry point
+│   ├── src/                  -- Core graded monad system
+│   ├── test/Spec.hs          -- Comprehensive test suite
+│   ├── static/index.html     -- HTML frontend
+│   └── *.cabal               -- Cabal configuration
+└── idris2/                   -- Idris 2 implementation  
+    ├── Effects.idr           -- Core system with proofs
+    ├── Repository.idr        -- State operations
+    ├── HTTP.idr              -- Handler logic
+    ├── Spec.idr              -- Tests with proofs
+    └── *.ipkg                -- Package configuration
 ```
 
 ## Development Commands
 
-### Build and Run
+### Haskell Implementation
 ```bash
+cd haskell
 cabal build                    # Build the project (using system GHC)
 cabal run im-thinking-of-a-number-exe  # Run the server
 cabal test                     # Run tests
 ```
 
-### Run with Logging
+### Idris 2 Implementation
 ```bash
+cd idris2
+idris2 --build idris2.ipkg     # Build the project
+./run-unit-tests              # Run tests
+```
+
+### Haskell Run with Logging
+```bash
+cd haskell
 # Run server with separate stdout and stderr logging
 cabal run im-thinking-of-a-number-exe > server.log 2> error.log
 
 # Run server with both stdout and stderr to single log file
 cabal run im-thinking-of-a-number-exe > server.log 2>&1
 
-# Run server with unbuffered output for immediate logging (macOS: install coreutils)
-# brew install coreutils
-gstdbuf -oL -eL cabal run im-thinking-of-a-number-exe > server.log 2> error.log
-
 # View logs in real-time while server runs
 tail -f server.log      # HTTP request logs
 tail -f error.log       # Build output and error messages
-
-# View logs after server stops
-cat server.log          # HTTP request logs and server output
-cat error.log           # Build errors and system errors
 ```
 
-**Note**: This project uses Cabal for package management and building. HTTP request logs are written to stdout, while build output and error messages go to stderr. Separating them makes debugging easier.
+**Note**: HTTP request logs are written to stdout, while build output and error messages go to stderr. Separating them makes debugging easier.
 
-### Development
+### Additional Development Commands
 ```bash
-cabal repl                     # Start REPL
-cabal clean                    # Clean build artifacts
+# Haskell
+cd haskell && cabal repl       # Start REPL
+cd haskell && cabal clean      # Clean build artifacts
+
+# Idris 2  
+cd idris2 && idris2 --repl     # Start REPL
+cd idris2 && rm -rf build/     # Clean build artifacts
 ```
 
 ## Implementation
@@ -86,19 +99,25 @@ Web interface: http://localhost:8080
 ## Claude Code Configuration
 
 ### Testing Scripts
-- `./run-tests` - Test API endpoints (requires running server)
-- `./start-server` - Start server, run tests, stop server
+
+#### Haskell Testing
+- `cd haskell && ./run-unit-tests` - Unit tests (no server required)
+- `cd haskell && ./run-integration-tests` - API tests (requires running server)
+- `cd haskell && ./start-server` - Full integration: start server → run tests → stop server
+
+#### Idris 2 Testing
+- `cd idris2 && ./run-unit-tests` - Unit tests with mathematical proofs
 
 ### Hooks
-Configure these hooks in Claude Code settings to automatically run tests and verify server functionality after code changes:
+Configure these hooks in Claude Code settings to automatically run tests after code changes:
 
 ```json
 {
   "hooks": {
     "tool-call": {
-      "Edit": "cabal build && cabal test && ./start-server",
-      "Write": "cabal build && cabal test && ./start-server", 
-      "MultiEdit": "cabal build && cabal test && ./start-server"
+      "Edit": "cd haskell && cabal build && cabal test && ./start-server",
+      "Write": "cd haskell && cabal build && cabal test && ./start-server", 
+      "MultiEdit": "cd haskell && cabal build && cabal test && ./start-server"
     }
   }
 }

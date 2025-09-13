@@ -1,130 +1,109 @@
-# I'm Thinking of a Number
+# I'm Thinking of a Number - Graded Monad HTTP Effects
 
-A Haskell web application demonstrating how to use graded monad effects to typecheck HTTP method semantics.
+A comparative study of graded monad implementations for HTTP method semantics, featuring both Haskell and Idris 2 versions to demonstrate different approaches to effect system design.
 
-## Tech Stack
+## Overview
 
-- **Web Framework**: Servant (type-safe HTTP APIs)
-- **Effects System**: Graded monad with Monoid composition using `<>` operator
-- **Type System**: Grade hierarchy (Pure < Safe < Idempotent < Unsafe) with type-safe transitions  
-- **Data Types**: Natural numbers for semantic correctness
-- **Server**: Warp (high-performance web server)
-- **Frontend**: HTML5 with JavaScript validation
-- **Build Tool**: Cabal
+This project explores how graded monads can provide type-safe effect tracking for HTTP operations, ensuring that HTTP methods have semantically correct effect grades:
 
-## Features
+- **GET**: Safe (read-only operations)
+- **PUT/DELETE**: Idempotent (repeatable with same result)  
+- **POST**: Unsafe (observable side effects)
 
-This application demonstrates graded monad effects through a number-thinking game:
+## Implementations
 
-### HTTP Operations with Natural Semantic Grades
-- **GET /number**: `Action 'Safe` (read-only operations)
-- **PUT /number**: `Action 'Idempotent` (repeatable with same result)  
-- **POST /number/add**: `Action 'Unsafe` (observable side effects)
-- **POST /number/randomise**: `Action 'Unsafe` (non-deterministic effects)
-- **DELETE /number**: `Action 'Idempotent` (reset to zero, repeatable)
+### [Haskell Implementation](./haskell/) 
+**Traditional graded monads with type-level programming**
 
-### Type System Features
-- **Monoid Composition**: Grade forms a join-semilattice with `<>` operator
-- **Effect Tracking**: Graded monads prevent unsafe grade downgrades
-- **HTTP Semantics**: Type system enforces correct HTTP method usage
-- **Natural Numbers**: Prevents negative values with validation chain
-- **Semantic Grading**: Operations have their natural effect grades
-
-## Quick Start
+- **Approach**: Type families and Monoid composition with `<>` operator
+- **Grade System**: `Pure < Safe < Idempotent < Unsafe` with automatic composition
+- **Key Features**: Servant web framework, Natural number validation, comprehensive test suite
+- **Tests**: 10 tests verifying HTTP semantics and graded monad laws
 
 ```bash
-# Install GHC and Cabal (macOS)
-brew install ghc cabal-install
-
-# Build and run
-cabal build
-cabal exec im-thinking-of-a-number-exe
-
-# Open browser
-open http://localhost:8080
+cd haskell
+cabal build && cabal run im-thinking-of-a-number-exe
 ```
 
-## Development Scripts
+### [Idris 2 Implementation](./idris2/)
+**Dependent types with compile-time verification**
 
-### Testing Scripts
-- **`./run-unit-tests`** - **Unit tests**: Graded monad laws, HTTP semantics (no server required)
-- **`./run-integration-tests`** - **Integration tests**: API endpoints via cURL (requires server already running)
-- **`./start-server`** - **Full integration**: Starts server → runs API tests → stops server
-
-### Test Types Explained
-- **Unit tests** (`./run-unit-tests`): Test graded monad composition, effect grades, algebraic laws
-- **Integration tests** (`./run-integration-tests`, `./start-server`): Test actual HTTP endpoints, JSON responses, server behavior
+- **Approach**: Dependent types with mathematical proofs and compile-time verification
+- **Grade System**: Same hierarchy with stronger guarantees via dependent functions
+- **Key Features**: Proof-carrying operations, mathematical law verification, `Nat` type safety
+- **Tests**: 13 tests including compile-time proof verification
 
 ```bash
-# Development workflow
-./run-unit-tests        # Fast unit tests (no server needed)
-./start-server          # Full integration testing cycle
+cd idris2  
+./run-unit-tests
 ```
 
-## Implementation Status
+## Key Differences
 
-### Complete ✅
-- **Monoid Grade System**: Standard Semigroup/Monoid instances with `<>` composition
-- **Grade Hierarchy**: Complete `Pure < Safe < Idempotent < Unsafe` lattice structure
-- **HTTP API**: All four routes with natural semantic grading
-- **Simplified Operations**: Clean API without manual grade elevation
-- **Type Safety**: Compile-time prevention of grade downgrades  
-- **Natural Numbers**: Full validation chain (HTML + JS + Haskell)
-- **Frontend**: HTML5 interface with client-side validation
-- **Error Handling**: Proper HTTP status codes and JSON error responses
-
-### Key Achievements
-- **Type-Level Programming**: Uses type-level `<>` operator for Monoid composition
-- **Semantic Grading**: Operations reflect their true nature (no artificial elevation needed)
-- **Standard Abstractions**: Leverages Haskell's Semigroup/Monoid classes
-- **Clean API**: Simple function names (`safe`, `idempotent`, `unsafe` for returns)
-- **Effect Tracking**: Each HTTP operation has correct grade transitions
-- **Semantic Correctness**: Natural numbers prevent invalid negative states
-- **Development Speed**: Complete implementation in ~4 hours from scratch
+| Feature | Haskell | Idris 2 |
+|---------|---------|----------|
+| **Grade Composition** | Type families at compile time | Dependent functions with proofs |
+| **Number Safety** | Runtime validation for Natural | `Nat` type - impossible to be negative |
+| **Mathematical Laws** | Unit tests verify properties | Compile-time mathematical proofs |
+| **Effect Verification** | Type system prevents downgrades | Dependent types + impossibility proofs |
+| **Web Framework** | Full Servant HTTP server | Handler logic only (no server) |
+| **Learning Curve** | Advanced Haskell type programming | Dependent type theory |
 
 ## Theoretical Foundation
 
-This implementation demonstrates **Grade as Monoid** for effect composition:
+Both implementations are based on:
 
 > Orchard, Dominic, Tomas Petricek, and Alan Mycroft. "[Effect systems via graded monads](https://www.cs.kent.ac.uk/people/staff/dao7/publ/haskell14-effects.pdf)." *Proceedings of the 2014 ACM SIGPLAN symposium on Haskell*. 2014.
 
-**Key Innovation**: Grade lattice forms a natural join-semilattice that is a Monoid:
+**Core Concept**: Grade lattice forms a join-semilattice that is a Monoid:
 - `Pure` is `mempty` (identity element)
-- `<>` is `max` operation (least upper bound)
+- `<>` is join operation (least upper bound) 
 - Composition: `Safe <> Idempotent = Idempotent` automatically
-- Operations have natural semantic grades without manual elevation
 
-## Code Structure
+## Quick Start
+
+### Haskell Version
+```bash
+# Install dependencies (macOS)
+brew install ghc cabal-install
+
+# Run Haskell implementation
+cd haskell
+cabal build && cabal run im-thinking-of-a-number-exe
+open http://localhost:8080
+```
+
+### Idris 2 Version  
+```bash
+# Install dependencies (macOS)
+brew install idris2
+
+# Run Idris 2 tests
+cd idris2
+./run-unit-tests
+```
+
+## Project Structure
 
 ```
-src/
-├── App.hs           # Application entry point with re-exports  
-├── Effects.hs       # Core graded monad system and data types
-├── HTTP.hs          # Web layer (API, logging, business operations)
-├── Repository.hs    # Data access layer (IORef operations)
-static/index.html    # Frontend with validation
-app/Main.hs         # Executable entry point
-*.cabal             # Dependencies and build configuration
+├── haskell/           # Haskell implementation with web server
+│   ├── src/           # Core graded monad system
+│   ├── test/          # Comprehensive test suite  
+│   ├── static/        # HTML frontend
+│   └── *.cabal        # Build configuration
+├── idris2/            # Idris 2 implementation with dependent types
+│   ├── Effects.idr    # Core system with mathematical proofs
+│   ├── Repository.idr # State operations with type safety
+│   ├── HTTP.idr       # Handler logic with grade verification
+│   └── Spec.idr       # Tests with compile-time proof verification
+└── README.md          # This file
 ```
 
-### Module Overview
+## Development
 
-- **`Effects.hs`** - Foundation module containing:
-  - Grade hierarchy (`Pure < Safe < Idempotent < Unsafe`)  
-  - `Action` graded monad with type-level `<>` composition
-  - Data types (`HttpVerb`, `NumberRequest`, `NumberResponse`)
-  - Core effect constructors (`safe`, `idempotent`, `unsafe`)
+Both implementations provide their own development tooling:
 
-- **`Repository.hs`** - Data access operations with semantic grades:
-  - `readState` (Safe), `writeState` (Idempotent)
-  - `addToState` (Unsafe), `randomiseState` (Unsafe)
+**Haskell**: Full web application with integration testing
+**Idris 2**: Proof-based verification with stronger compile-time guarantees
 
-- **`HTTP.hs`** - Complete web layer combining:
-  - Business operations demonstrating grade composition
-  - HTTP request logging with type-safe verbs
-  - Servant API definition and server implementation
-  - Static file serving
-
-- **`App.hs`** - Main module providing backward compatibility:
-  - Re-exports public API from other modules
-  - `startApp` function for server initialization
+See individual README files for specific development instructions and architectural details.
