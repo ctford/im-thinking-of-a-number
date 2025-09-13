@@ -39,12 +39,7 @@ record NumberRequest where
   constructor MkNumberRequest
   value : Nat
 
-||| Number response carrying current state value
-||| Uses Nat for compile-time non-negative guarantee  
-public export
-record NumberResponse where
-  constructor MkNumberResponse
-  current : Nat
+-- NumberResponse eliminated - operations return Nat directly
 
 -- ============================================================================
 -- LOGGING - Type-safe request logging with grade awareness
@@ -63,7 +58,6 @@ logRequest verb path current = safeAction $
 
 ||| GET /number - Show current number (Safe grade)
 ||| Read-only operation with logging, composes to Safe grade
-||| Returns just the number, response construction handled elsewhere
 public export
 showNumber : NumberState -> Action Safe Nat
 showNumber state = 
@@ -73,7 +67,6 @@ showNumber state =
 
 ||| PUT /number - Set number to specific value (Idempotent grade)
 ||| Same input always produces same result, composes to Idempotent grade
-||| Returns the final number, response construction handled elsewhere
 public export
 setNumber : NumberState -> Nat -> Action Idempotent Nat
 setNumber state value = 
@@ -84,7 +77,6 @@ setNumber state value =
 
 ||| POST /number/add - Add to current number (Unsafe grade)  
 ||| Non-idempotent operation with observable side effects
-||| Returns the final number, response construction handled elsewhere
 public export
 addNumber : NumberState -> Nat -> Action Unsafe Nat
 addNumber state addValue = 
@@ -95,7 +87,6 @@ addNumber state addValue =
 
 ||| POST /number/randomise - Set to random value (Unsafe grade)
 ||| Non-deterministic operation with observable side effects
-||| Returns the final number, response construction handled elsewhere
 public export
 randomiseNumber : NumberState -> Action Unsafe Nat
 randomiseNumber state = 
@@ -106,7 +97,6 @@ randomiseNumber state =
 
 ||| DELETE /number - Reset to zero (Idempotent grade)
 ||| Always resets to same value, repeatable with same result
-||| Returns the final number (0), response construction handled elsewhere
 public export  
 resetNumber : NumberState -> Action Idempotent Nat
 resetNumber state = 
@@ -116,102 +106,21 @@ resetNumber state =
   idempotentAction (pure n)
 
 -- ============================================================================
--- HTTP RESPONSE WRAPPERS - Convert Nat results to NumberResponse
+-- DIRECT HTTP OPERATIONS - Return Nat directly, no JSON wrapper needed
 -- ============================================================================
 
-||| Convert showNumber result to HTTP response
-public export
-showNumberResponse : NumberState -> Action Safe NumberResponse
-showNumberResponse state = 
-  showNumber state `bind` \n =>
-  safeAction (pure (MkNumberResponse n))
-
-||| Convert setNumber result to HTTP response  
-public export
-setNumberResponse : NumberState -> Nat -> Action Idempotent NumberResponse
-setNumberResponse state value = 
-  setNumber state value `bind` \n =>
-  idempotentAction (pure (MkNumberResponse n))
-
-||| Convert addNumber result to HTTP response
-public export
-addNumberResponse : NumberState -> Nat -> Action Unsafe NumberResponse
-addNumberResponse state addValue = 
-  addNumber state addValue `bind` \n =>
-  unsafeAction (pure (MkNumberResponse n))
-
-||| Convert randomiseNumber result to HTTP response
-public export
-randomiseNumberResponse : NumberState -> Action Unsafe NumberResponse
-randomiseNumberResponse state = 
-  randomiseNumber state `bind` \n =>
-  unsafeAction (pure (MkNumberResponse n))
-
-||| Convert resetNumber result to HTTP response
-public export
-resetNumberResponse : NumberState -> Action Idempotent NumberResponse
-resetNumberResponse state = 
-  resetNumber state `bind` \n =>
-  idempotentAction (pure (MkNumberResponse n))
+-- Core operations (showNumber, setNumber, etc.) are now the main HTTP operations
+-- No need for separate wrapper functions
 
 -- ============================================================================
--- DEPENDENT HTTP OPERATIONS - Handlers with compile-time grade verification
+-- SIMPLIFIED HTTP OPERATIONS - Direct function calls without boilerplate
 -- ============================================================================
 
-||| HTTP handler that proves its grade at compile time
-||| Dependent type relates HTTP method to expected grade
+||| Simple HTTP operation registry - maps verbs to their semantic grades
+||| The interesting dependent types are in the graded monad itself, not here
 public export
-data HttpHandler : HttpVerb -> Grade -> Type where
-  GetHandler    : (NumberState -> Action Safe NumberResponse) -> 
-                  HttpHandler GET Safe
-  PutHandler    : (NumberState -> Nat -> Action Idempotent NumberResponse) ->
-                  HttpHandler PUT Idempotent  
-  PostHandler   : {g : Grade} -> (NumberState -> Nat -> Action g NumberResponse) ->
-                  HttpHandler POST g
-  DeleteHandler : (NumberState -> Action Idempotent NumberResponse) ->
-                  HttpHandler DELETE Idempotent
-
-||| Execute handler with compile-time grade verification
-||| Type system ensures handler grade matches expected grade
-public export
-executeHandler : {verb : HttpVerb} -> {g : Grade} ->
-                 HttpHandler verb g -> 
-                 NumberState ->
-                 (args : List Nat) ->
-                 Action g NumberResponse
-executeHandler (GetHandler f) state [] = f state
-executeHandler (GetHandler f) state (_ :: _) = 
-  safeAction (pure (MkNumberResponse 0)) -- Invalid args
-executeHandler (PutHandler f) state [value] = f state value
-executeHandler (PutHandler f) state _ =
-  idempotentAction (pure (MkNumberResponse 0)) -- Invalid args
-executeHandler (PostHandler {g} f) state [value] = f state value
-executeHandler (PostHandler {g} f) state _ =
-  MkAction {g} (pure (MkNumberResponse 0)) -- Use generic constructor
-executeHandler (DeleteHandler f) state [] = f state
-executeHandler (DeleteHandler f) state (_ :: _) =
-  idempotentAction (pure (MkNumberResponse 0)) -- Invalid args
-
--- ============================================================================
--- HANDLER REGISTRY - Type-safe collection of HTTP handlers
--- ============================================================================
-
-||| Registry of all HTTP handlers with their grades
-public export
-handlers : (verb : HttpVerb) -> 
-           (g : Grade ** HttpHandler verb g)
-handlers GET = (Safe ** GetHandler showNumberResponse)
-handlers PUT = (Idempotent ** PutHandler setNumberResponse)  
-handlers POST = (Unsafe ** PostHandler addNumberResponse)
-handlers DELETE = (Idempotent ** DeleteHandler resetNumberResponse)
-
-||| Execute any HTTP handler with automatic grade inference
-||| Type system computes the appropriate grade for each method
-public export
-handleRequest : (verb : HttpVerb) ->
-                NumberState ->
-                List Nat ->
-                (g : Grade ** Action g NumberResponse)
-handleRequest verb state args = 
-  let (g ** handler) = handlers verb
-  in (g ** executeHandler handler state args)
+httpGrade : HttpVerb -> Grade
+httpGrade GET = Safe
+httpGrade PUT = Idempotent  
+httpGrade POST = Unsafe
+httpGrade DELETE = Idempotent

@@ -8,18 +8,18 @@ An Idris 2 implementation of the graded monad HTTP effects system, demonstrating
 - **Elegant grade composition** - Simply `gradeJoin = max` since grades form a total order!
 - **Mathematical laws verified as proofs** (identity, idempotence, absorption)
 - **`DecEq Grade`** enables compile-time grade reasoning  
-- **HTTP handlers carry proof of their grade** in the type system
+- **HTTP operations have statically known grades** - no runtime dispatch needed
 
 ### Clean Architecture  
-- **Separation of concerns** - Core operations return `Nat`, HTTP wrappers handle `NumberResponse`
+- **Pure design** - All operations return `Nat` directly, no JSON wrapper types needed
 - **Composable design** - Business logic independent of response format
-- **Type-safe layering** - Pure operations and HTTP presentation cleanly separated
+- **Minimal complexity** - No JSON serialization or HTTP wrapper types
+- **No boilerplate** - Direct function calls instead of handler registries and GADTs
 
 ### Type Safety Enhancements
 - **`Nat` type provides compile-time non-negative guarantees** - no runtime validation needed
-- **`HttpHandler` GADT** relates HTTP verbs to their expected grades
-- **Handler registry automatically computes correct grades**
-- **Impossible to assign wrong grade to HTTP operation**
+- **Simple grade mapping** - `httpGrade : HttpVerb -> Grade` function
+- **No boilerplate** - Direct operations instead of handler patterns
 
 ### Mathematical Rigor
 - **Proof-carrying operations** with explicit verification functions
