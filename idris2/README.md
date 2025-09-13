@@ -10,6 +10,11 @@ An Idris 2 implementation of the graded monad HTTP effects system, demonstrating
 - **`DecEq Grade`** enables compile-time grade reasoning  
 - **HTTP handlers carry proof of their grade** in the type system
 
+### Clean Architecture  
+- **Separation of concerns** - Core operations return `Nat`, HTTP wrappers handle `NumberResponse`
+- **Composable design** - Business logic independent of response format
+- **Type-safe layering** - Pure operations and HTTP presentation cleanly separated
+
 ### Type Safety Enhancements
 - **`Nat` type provides compile-time non-negative guarantees** - no runtime validation needed
 - **`HttpHandler` GADT** relates HTTP verbs to their expected grades

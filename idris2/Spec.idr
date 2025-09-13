@@ -85,7 +85,7 @@ testGradeOrdering = pure $
 testGetOperation : IO TestResult
 testGetOperation = do
   state <- newIORef 123
-  (MkNumberResponse value) <- runAction $ showNumber state
+  (MkNumberResponse value) <- runAction $ showNumberResponse state
   if value == 123
     then pure $ Pass "GET operation preserves state and returns correct value"
     else pure $ Fail "123" (show value)
@@ -94,8 +94,8 @@ testGetOperation = do
 testPutOperation : IO TestResult
 testPutOperation = do
   state <- newIORef 0
-  (MkNumberResponse result1) <- runAction $ setNumber state 99
-  (MkNumberResponse result2) <- runAction $ setNumber state 99
+  (MkNumberResponse result1) <- runAction $ setNumberResponse state 99
+  (MkNumberResponse result2) <- runAction $ setNumberResponse state 99
   if result1 == 99 && result2 == 99
     then pure $ Pass "PUT operation is idempotent"
     else pure $ Fail "99, 99" "\{show result1}, \{show result2}"
@@ -104,8 +104,8 @@ testPutOperation = do
 testPostAddOperation : IO TestResult  
 testPostAddOperation = do
   state <- newIORef 10
-  (MkNumberResponse result1) <- runAction $ addNumber state 5
-  (MkNumberResponse result2) <- runAction $ addNumber state 5
+  (MkNumberResponse result1) <- runAction $ addNumberResponse state 5
+  (MkNumberResponse result2) <- runAction $ addNumberResponse state 5
   if result1 == 15 && result2 == 20
     then pure $ Pass "POST add operation is non-idempotent (unsafe)"
     else pure $ Fail "15, 20" "\{show result1}, \{show result2}"
@@ -114,7 +114,7 @@ testPostAddOperation = do
 testPostRandomiseOperation : IO TestResult
 testPostRandomiseOperation = do
   state <- newIORef 0
-  (MkNumberResponse result) <- runAction $ randomiseNumber state
+  (MkNumberResponse result) <- runAction $ randomiseNumberResponse state
   finalValue <- readIORef state
   if result >= 0 && result <= 1000 && result == finalValue
     then pure $ Pass "POST randomise operation updates state correctly"
@@ -124,8 +124,8 @@ testPostRandomiseOperation = do
 testDeleteOperation : IO TestResult
 testDeleteOperation = do
   state <- newIORef 456
-  (MkNumberResponse result1) <- runAction $ resetNumber state
-  (MkNumberResponse result2) <- runAction $ resetNumber state
+  (MkNumberResponse result1) <- runAction $ resetNumberResponse state
+  (MkNumberResponse result2) <- runAction $ resetNumberResponse state
   if result1 == 0 && result2 == 0
     then pure $ Pass "DELETE operation is idempotent"
     else pure $ Fail "0, 0" "\{show result1}, \{show result2}"
@@ -138,7 +138,7 @@ testDeleteOperation = do
 testNaturalConstraints : IO TestResult
 testNaturalConstraints = do
   state <- newIORef 5
-  (MkNumberResponse result) <- runAction $ addNumber state 10
+  (MkNumberResponse result) <- runAction $ addNumberResponse state 10
   if result >= 0  -- This is always true for Nat, but demonstrates the point
     then pure $ Pass "Operations preserve Natural number constraints"  
     else pure $ Fail "non-negative" (show result)

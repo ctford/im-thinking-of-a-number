@@ -16,12 +16,15 @@ data HttpVerb : Type where
   POST   : HttpVerb
   DELETE : HttpVerb
 
+-- Show and Eq instances (could be derived, but explicit for compatibility)
+public export
 Show HttpVerb where
   show GET = "GET"
   show PUT = "PUT" 
   show POST = "POST"
   show DELETE = "DELETE"
 
+public export
 Eq HttpVerb where
   GET == GET = True
   PUT == PUT = True
@@ -60,56 +63,95 @@ logRequest verb path current = safeAction $
 
 ||| GET /number - Show current number (Safe grade)
 ||| Read-only operation with logging, composes to Safe grade
-||| Dependent types ensure grade composition is computed correctly
+||| Returns just the number, response construction handled elsewhere
 public export
-showNumber : NumberState -> Action Safe NumberResponse  
+showNumber : NumberState -> Action Safe Nat
 showNumber state = 
   readState state `bind` \n =>
   logRequest GET "/number" n `bind` \_ =>
-  safeAction (pure (MkNumberResponse n))
+  safeAction (pure n)
 
 ||| PUT /number - Set number to specific value (Idempotent grade)
 ||| Same input always produces same result, composes to Idempotent grade
-||| Grade composition: Idempotent <> Safe <> Safe = Idempotent
+||| Returns the final number, response construction handled elsewhere
 public export
-setNumber : NumberState -> Nat -> Action Idempotent NumberResponse
+setNumber : NumberState -> Nat -> Action Idempotent Nat
 setNumber state value = 
   writeState value state `bind` \_ =>
   readState state `bind` \n =>
   logRequest PUT "/number" n `bind` \_ =>
-  idempotentAction (pure (MkNumberResponse n))
+  idempotentAction (pure n)
 
 ||| POST /number/add - Add to current number (Unsafe grade)  
 ||| Non-idempotent operation with observable side effects
-||| Grade composition: Unsafe <> Safe <> Safe = Unsafe
+||| Returns the final number, response construction handled elsewhere
 public export
-addNumber : NumberState -> Nat -> Action Unsafe NumberResponse
+addNumber : NumberState -> Nat -> Action Unsafe Nat
 addNumber state addValue = 
   addToState addValue state `bind` \_ =>
   readState state `bind` \n =>
   logRequest POST "/number/add" n `bind` \_ =>
-  unsafeAction (pure (MkNumberResponse n))
+  unsafeAction (pure n)
 
 ||| POST /number/randomise - Set to random value (Unsafe grade)
 ||| Non-deterministic operation with observable side effects
-||| Grade composition: Unsafe <> Safe <> Safe = Unsafe  
+||| Returns the final number, response construction handled elsewhere
 public export
-randomiseNumber : NumberState -> Action Unsafe NumberResponse
+randomiseNumber : NumberState -> Action Unsafe Nat
 randomiseNumber state = 
   randomiseState state `bind` \_ =>
   readState state `bind` \n =>
   logRequest POST "/number/randomise" n `bind` \_ =>
-  unsafeAction (pure (MkNumberResponse n))
+  unsafeAction (pure n)
 
 ||| DELETE /number - Reset to zero (Idempotent grade)
 ||| Always resets to same value, repeatable with same result
-||| Grade composition: Idempotent <> Safe <> Safe = Idempotent
+||| Returns the final number (0), response construction handled elsewhere
 public export  
-resetNumber : NumberState -> Action Idempotent NumberResponse
+resetNumber : NumberState -> Action Idempotent Nat
 resetNumber state = 
   writeState 0 state `bind` \_ =>
   readState state `bind` \n =>
   logRequest DELETE "/number" n `bind` \_ =>
+  idempotentAction (pure n)
+
+-- ============================================================================
+-- HTTP RESPONSE WRAPPERS - Convert Nat results to NumberResponse
+-- ============================================================================
+
+||| Convert showNumber result to HTTP response
+public export
+showNumberResponse : NumberState -> Action Safe NumberResponse
+showNumberResponse state = 
+  showNumber state `bind` \n =>
+  safeAction (pure (MkNumberResponse n))
+
+||| Convert setNumber result to HTTP response  
+public export
+setNumberResponse : NumberState -> Nat -> Action Idempotent NumberResponse
+setNumberResponse state value = 
+  setNumber state value `bind` \n =>
+  idempotentAction (pure (MkNumberResponse n))
+
+||| Convert addNumber result to HTTP response
+public export
+addNumberResponse : NumberState -> Nat -> Action Unsafe NumberResponse
+addNumberResponse state addValue = 
+  addNumber state addValue `bind` \n =>
+  unsafeAction (pure (MkNumberResponse n))
+
+||| Convert randomiseNumber result to HTTP response
+public export
+randomiseNumberResponse : NumberState -> Action Unsafe NumberResponse
+randomiseNumberResponse state = 
+  randomiseNumber state `bind` \n =>
+  unsafeAction (pure (MkNumberResponse n))
+
+||| Convert resetNumber result to HTTP response
+public export
+resetNumberResponse : NumberState -> Action Idempotent NumberResponse
+resetNumberResponse state = 
+  resetNumber state `bind` \n =>
   idempotentAction (pure (MkNumberResponse n))
 
 -- ============================================================================
@@ -158,10 +200,10 @@ executeHandler (DeleteHandler f) state (_ :: _) =
 public export
 handlers : (verb : HttpVerb) -> 
            (g : Grade ** HttpHandler verb g)
-handlers GET = (Safe ** GetHandler showNumber)
-handlers PUT = (Idempotent ** PutHandler setNumber)  
-handlers POST = (Unsafe ** PostHandler addNumber)
-handlers DELETE = (Idempotent ** DeleteHandler resetNumber)
+handlers GET = (Safe ** GetHandler showNumberResponse)
+handlers PUT = (Idempotent ** PutHandler setNumberResponse)  
+handlers POST = (Unsafe ** PostHandler addNumberResponse)
+handlers DELETE = (Idempotent ** DeleteHandler resetNumberResponse)
 
 ||| Execute any HTTP handler with automatic grade inference
 ||| Type system computes the appropriate grade for each method
