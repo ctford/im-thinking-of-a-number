@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Unit tests for Idris 1 graded monad implementation
+# Tests the beautiful do-notation with indexed monads
+
+echo "Running Idris 1 unit tests with flexible syntax..."
+echo "=================================================="
+
+# Build and run the test suite
+idris --build idris1.ipkg
+if [ $? -eq 0 ]; then
+    echo "Build successful! Running tests..."
+    ./graded-monad-test
+else
+    echo "Build failed!"
+    exit 1
+fi

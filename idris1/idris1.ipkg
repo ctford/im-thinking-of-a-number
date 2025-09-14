@@ -1,0 +1,30 @@
+package idris1
+
+-- Package for Idris 1 graded monad implementation
+-- Demonstrates beautiful do-notation with indexed monads
+
+modules = Effects,
+          Repository, 
+          HTTP,
+          Spec,
+          Demo
+
+executable = graded-monad-test
+main = Spec
+sourcedir = .
+
+-- Enable syntax extensions for beautiful do-notation
+opts = ""
+
+-- Package metadata
+brief = "Graded monad implementation using Idris 1's flexible syntax"
+version = 0.1.0
+readme = README.md
+license = MIT
+author = "Claude Code Assistant"
+maintainer = "Generated with Claude Code"
+homepage = "https://claude.ai/code"
+sourceloc = "."
+
+-- Dependencies (minimal for Idris 1)
+pkgs = base, effects

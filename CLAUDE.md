@@ -1,6 +1,6 @@
 # Development Guide
 
-Comparative study of graded monad implementations with both Haskell and Idris 2 versions.
+Comparative study of graded monad implementations with Haskell, Idris 2, and Idris 1 versions demonstrating different approaches to effect system syntax.
 
 ## Project Structure
 ```
@@ -11,11 +11,18 @@ im-thinking-of-a-number/
 │   ├── test/Spec.hs          -- Comprehensive test suite
 │   ├── static/index.html     -- HTML frontend
 │   └── *.cabal               -- Cabal configuration
-└── idris2/                   -- Idris 2 implementation  
-    ├── Effects.idr           -- Core system with proofs
-    ├── Repository.idr        -- State operations
-    ├── HTTP.idr              -- Handler logic
-    ├── Spec.idr              -- Tests with proofs
+├── idris2/                   -- Idris 2 implementation (verbose bind syntax)
+│   ├── Effects.idr           -- Core system with proofs
+│   ├── Repository.idr        -- State operations
+│   ├── HTTP.idr              -- Handler logic with bind chains
+│   ├── Spec.idr              -- Tests with proofs
+│   └── *.ipkg                -- Package configuration
+└── idris1/                   -- Idris 1 implementation (beautiful do-notation)
+    ├── Effects.idr           -- IxMonad interface with rebindable syntax
+    ├── Repository.idr        -- State operations with automatic deriving
+    ├── HTTP.idr              -- Handler logic with clean do-notation
+    ├── Spec.idr              -- Tests demonstrating syntax
+    ├── Demo.idr              -- Syntax comparison examples
     └── *.ipkg                -- Package configuration
 ```
 
@@ -34,6 +41,13 @@ cabal test                     # Run tests
 cd idris2
 idris2 --build idris2.ipkg     # Build the project
 ./run-unit-tests              # Run tests
+```
+
+### Idris 1 Implementation (Beautiful Syntax!)
+```bash
+cd idris1
+idris --build idris1.ipkg      # Build the project
+./run-unit-tests              # Run tests with gorgeous do-notation
 ```
 
 ### Haskell Run with Logging
