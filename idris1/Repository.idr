@@ -33,7 +33,8 @@ addToState addValue state = MkAction $ do
 ||| Set state to random value (Unsafe grade - non-deterministic)
 randomiseState : NumberState -> Action Unsafe ()
 randomiseState state = MkAction $ do
-  -- Simple random number generation (0-1000)
-  -- In a real implementation you'd use a proper RNG
-  randomVal <- getLine >>= return . length . words  -- Simple "randomness"
-  writeIORef state (cast randomVal `mod` 1001)
+  -- Use system time as pseudo-random seed for demonstration
+  -- In a real implementation you'd use System.Random or similar
+  timeNow <- time  -- Get current time
+  let pseudoRandom = cast timeNow `mod` 1001  -- Simple PRNG based on time
+  writeIORef state pseudoRandom

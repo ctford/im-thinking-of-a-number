@@ -104,34 +104,5 @@ httpGrade POST = Unsafe
 httpGrade DELETE = Idempotent
 
 -- ============================================================================
--- DEMONSTRATION - Show off the beautiful syntax!
+-- HTTP OPERATIONS - Direct function mapping for simplified API
 -- ============================================================================
-
-||| Example of complex operation composition with automatic grade tracking
-complexOperation : NumberState -> Action Unsafe NumberResponse
-complexOperation state = do
-  -- Read current value (Safe)
-  initial <- readState state
-  
-  -- Add some value (Unsafe)
-  _ <- addToState 10 state
-  
-  -- Log the operation (Safe)
-  _ <- logRequest POST "/complex" (initial + 10)
-  
-  -- Read final value (Safe)
-  final <- readState state
-  
-  -- Return response with automatic grade: Unsafe (from addToState)
-  return (MkNumberResponse final)
-
-||| Demonstrate grade composition with mixed operations
-mixedGradeOperation : NumberState -> Action Unsafe ()
-mixedGradeOperation state = do
-  -- This will automatically infer the highest grade needed
-  n1 <- readState state           -- Safe
-  _ <- writeState (n1 + 1) state  -- Idempotent
-  _ <- addToState 5 state         -- Unsafe - this determines final grade
-  n2 <- readState state           -- Safe
-  _ <- logRequest POST "/mixed" n2 -- Safe
-  return ()  -- Final grade: Unsafe (from addToState)

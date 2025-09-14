@@ -105,13 +105,18 @@ testResetNumber = ("DELETE /number operation (Idempotent grade)", do
 -- GRADED MONAD TESTS - Verify mathematical properties with do-notation
 -- ============================================================================
 
-||| Test that do-notation preserves grades correctly
+||| Test that do-notation works with grade composition
 testGradeComposition : TestCase
 testGradeComposition = ("Grade composition with do-notation", do
   state <- newIORef 100
   
-  -- Test that complex operation has Unsafe grade (highest in composition)
-  NumberResponse result <- runAction $ complexOperation state
+  -- Simple test of composing different grades in do-notation
+  NumberResponse result <- runAction $ do
+    n <- readState state          -- Safe
+    _ <- addToState 10 state      -- Unsafe (determines final grade)
+    final <- readState state     -- Safe
+    return (MkNumberResponse final)  -- Final grade: Unsafe
+  
   finalValue <- readIORef state
   
   -- Should be 100 + 10 = 110
@@ -123,13 +128,20 @@ testGradeComposition = ("Grade composition with do-notation", do
     (Fail msg, _) => Fail ("Result: " ++ msg)
     (_, Fail msg) => Fail ("State: " ++ msg))
 
-||| Test mixed grade operations
+||| Test mixed grade operations in do-notation
 testMixedGrades : TestCase
 testMixedGrades = ("Mixed grade operations", do
   state <- newIORef 50
   
-  -- This should work and result in grade Unsafe
-  runAction $ mixedGradeOperation state
+  -- Test composition of Safe, Idempotent, and Unsafe grades
+  runAction $ do
+    n1 <- readState state         -- Safe
+    _ <- writeState (n1 + 1) state -- Idempotent  
+    _ <- addToState 5 state       -- Unsafe (determines final grade)
+    n2 <- readState state         -- Safe
+    _ <- logRequest POST "/mixed" n2 -- Safe
+    return ()  -- Final grade: Unsafe
+    
   finalValue <- readIORef state
   
   -- Should be 50 + 1 + 5 = 56
