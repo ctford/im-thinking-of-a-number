@@ -6,8 +6,7 @@ package idris1
 modules = Effects,
           Repository, 
           HTTP,
-          Spec,
-          Demo
+          Spec
 
 executable = graded-monad-test
 main = Spec
