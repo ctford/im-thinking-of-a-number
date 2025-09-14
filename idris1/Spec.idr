@@ -12,9 +12,10 @@ import Repository
 ||| Simple test result type
 data TestResult = Pass | Fail String
 
-instance Show TestResult where
-  show Pass = "PASS"
-  show (Fail msg) = "FAIL: " ++ msg
+-- Automatic deriving - let Idris 1 generate the instances!
+%auto deriving instance Eq TestResult
+%auto deriving instance Ord TestResult
+%auto deriving instance Show TestResult
 
 ||| Test case type
 TestCase : Type

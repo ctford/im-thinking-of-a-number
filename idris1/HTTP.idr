@@ -24,6 +24,7 @@ record NumberRequest where
   value : Nat
 
 %auto deriving instance Eq NumberRequest
+%auto deriving instance Ord NumberRequest   -- Useful for comparing requests
 %auto deriving instance Show NumberRequest
 
 ||| Number response carrying the result  
@@ -32,6 +33,7 @@ record NumberResponse where
   current : Nat
 
 %auto deriving instance Eq NumberResponse
+%auto deriving instance Ord NumberResponse  -- Useful for comparing responses
 %auto deriving instance Show NumberResponse
 
 -- ============================================================================

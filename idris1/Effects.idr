@@ -15,6 +15,8 @@ data Grade = Pure | Safe | Idempotent | Unsafe
 %auto deriving instance Eq Grade
 %auto deriving instance Ord Grade  
 %auto deriving instance Show Grade
+%auto deriving instance Enum Grade      -- Enables [Pure..Unsafe] syntax
+%auto deriving instance Bounded Grade   -- Provides minBound and maxBound
 
 -- ============================================================================
 -- GRADE COMPOSITION - max operation for join semilattice
